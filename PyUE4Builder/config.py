@@ -43,6 +43,15 @@ class ProjectConfig(object):
         # This is the path to the localization compile script
         self.proj_localization_script = ''
 
+        # If true, the unreal dependency sync will ignore content samples (saving you about 1.4gb give or take)
+        # This is great for projects which have no need for content examples.
+        self.exclude_samples = False
+
+        # If there are extra folders that should be ignored in the engines dependency pull, add them here.
+        # NOTE: The exclude_samples already excludes all extraneous sample folders
+        # These are paths relative of the engine folder, ex. Engine/Extras/3dsMaxScripts
+        self.extra_dependency_excludes = []
+
         # The path (relative or absolute) of the uproject file.
         self.project_path = ''
 
