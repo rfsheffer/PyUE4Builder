@@ -1,0 +1,10 @@
+{
+	"config": {
+		"project_path": "MyGame.uproject",
+		"engine_path_name": "",
+		"uproject_editor_name": "MyGameEditor",
+		"git_proj_branch": "release",
+		"git_repo": "git@github.com:EpicGames/UnrealEngine.git",
+		"UE4EngineKeyName": "UnrealEngine_MyGame",
+	}
+}
