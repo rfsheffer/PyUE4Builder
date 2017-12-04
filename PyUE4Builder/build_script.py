@@ -8,7 +8,7 @@ import importlib
 from build_meta import BuildMeta
 from config import ProjectConfig, project_build_types, project_configurations, project_package_types
 from utility.common import launch, print_title, print_action, error_exit, print_error, pull_git_engine, \
-    ensure_engine_dependencies, get_visual_studio_version, register_project_engine, print_warning, is_editor_running
+    get_visual_studio_version, register_project_engine, print_warning, is_editor_running
 from actions.build import Build
 from actions.package import Package
 
@@ -180,8 +180,19 @@ def ensure_engine(config, engine_override, editor_running):
 
     if not editor_running:
         print_action('Checking engine dependencies up-to-date')
-        if not ensure_engine_dependencies(config):
-            error_exit('Engine dependencies Failure!')
+
+        def add_dep_exclude(path_name, args):
+            args.append('-exclude={}'.format(path_name))
+
+        cmd_args = []
+        if config.exclude_samples:
+            for sample_pack in ['FeaturePacks', 'Samples', 'Templates']:
+                add_dep_exclude(sample_pack, cmd_args)
+        for extra_exclude in config.extra_dependency_excludes:
+            add_dep_exclude(extra_exclude, cmd_args)
+
+        if launch(config.UE4GitDependenciesPath, cmd_args) != 0:
+            error_exit('Engine dependencies Failed to Sync!')
 
         if not os.path.exists(config.UE4UBTPath):
             # The unreal build tool does not exist, we need to build it first

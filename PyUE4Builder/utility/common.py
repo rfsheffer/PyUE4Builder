@@ -246,16 +246,6 @@ def register_project_engine(config, prompt_path=True):
     return True
 
 
-def ensure_engine_dependencies(config):
-    if launch(config.UE4GitDependenciesPath) != 0:
-        print_error('Failed to check engine dependencies!')
-        return False
-    # if launch('{0} /quiet'.format(config.UE4EnginePrereqPath), separate_terminal=False) != 0:
-    #     print_error('Failed to run prerequirements')
-    #     return False
-    return True
-
-
 def pull_git_engine(config, force_repull=False):
     """
     Helper for pulling the unreal engine from git.
