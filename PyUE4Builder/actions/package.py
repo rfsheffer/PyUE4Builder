@@ -34,6 +34,7 @@ class Package(Action):
         self.nativize_assets = kwargs['nativize_assets'] if 'nativize_assets' in kwargs else True
         self.compressed_assets = kwargs['compressed_assets'] if 'compressed_assets' in kwargs else True
         self.no_debug_info = kwargs['no_debug_info'] if 'no_debug_info' in kwargs else False
+        self.full_rebuild = kwargs['full_rebuild'] if 'full_rebuild' in kwargs else False
 
     def run(self):
         if not self.config.check_environment():
@@ -106,7 +107,7 @@ class Package(Action):
         if self.no_debug_info:
             cmd_args.append('-nodebuginfo')
 
-        if self.config.clean:
+        if self.config.clean or self.full_rebuild:
             cmd_args.append('-clean')
 
         cmd_args.append('-compile')
