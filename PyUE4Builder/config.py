@@ -82,7 +82,6 @@ class ProjectConfig(object):
         self.UE4GitDependenciesPath = ''
         self.UE4EnginePrereqPath = ''
         self.UE4UBTPath = ''
-        self.UE4UATPath = ''
         self.UE4RunUATBatPath = ''
         self.UE4BuildBatchPath = ''
         self.UE4CleanBatchPath = ''
@@ -181,7 +180,6 @@ class ProjectConfig(object):
         self.UE4EnginePrereqPath = str(Path(self.UE4EnginePath,
                                             'Engine\\Extras\\Redist\\en-us\\UE4PrereqSetup_x64.exe'))
         self.UE4UBTPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\UnrealBuildTool.exe'))
-        self.UE4UATPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\AutomationTool.exe'))
         self.UE4RunUATBatPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\RunUAT.bat'))
         self.UE4BuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Build.bat'))
         self.UE4CleanBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Clean.bat'))
@@ -198,7 +196,7 @@ class ProjectConfig(object):
         if not os.path.isdir(self.UE4EnginePath) \
                 or not os.path.isfile(self.UE4EditorPath) \
                 or not os.path.isfile(self.UE4UBTPath) \
-                or not os.path.isfile(self.UE4UATPath):
+                or not os.path.isfile(self.UE4RunUATBatPath):
             from utility.common import print_error
             print_error('Unable to find the engine!')
             return False
