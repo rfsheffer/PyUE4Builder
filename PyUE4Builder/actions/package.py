@@ -30,6 +30,9 @@ class Package(Action):
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
 
+        self.pak_assets = kwargs['pak_assets'] if 'pak_assets' in kwargs else True
+        self.nativize_assets = kwargs['nativize_assets'] if 'nativize_assets' in kwargs else True
+
     def run(self):
         if not self.config.check_environment():
             self.error = 'Environment is not ready for building or packaging!'
@@ -90,8 +93,12 @@ class Package(Action):
                     '-project={}'.format(self.config.uproject_file_path), '-cook', '-stage', '-archive',
                     '-archivedirectory={}'.format(self.config.build_path), '-package',
                     '-clientconfig={}'.format(self.config.configuration), '-ue4exe=UE4Editor-Cmd.exe',
-                    '-pak', '-nativizeAssets', '-prereqs', '-targetplatform=Win64', '-platform=Win64',
+                    '-prereqs', '-targetplatform=Win64', '-platform=Win64',
                     '-build', '-CrashReporter', '-utf8output', '-compile']
+        if self.nativize_assets:
+            cmd_args.append('-nativizeAssets')
+        if self.pak_assets:
+            cmd_args.append('-pak')
         if self.config.clean:
             cmd_args.append('-clean')
 

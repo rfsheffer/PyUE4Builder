@@ -112,11 +112,12 @@ def build_script(engine, script, configuration, buildtype, build, clean):
 
         run_build_steps(config, build_meta, 'post_game_editor_steps')
     elif config.build_type == "Package":
-        run_build_steps(config, build_meta, 'pre_package_steps')
-        package = Package(config)
-        if not package.run():
-            error_exit(package.error)
-        run_build_steps(config, build_meta, 'post_package_steps')
+        if 'package_steps' in config.script:
+            run_build_steps(config, build_meta, 'package_steps')
+        else:
+            package = Package(config)
+            if not package.run():
+                error_exit(package.error)
 
     build_meta.save_meta()
     print_action('SUCCESS!')
@@ -233,6 +234,9 @@ def run_build_steps(config: ProjectConfig, build_meta: BuildMeta, steps_name, co
             kwargs = {}
             if 'meta' in step['action']:
                 kwargs.update(build_meta.collect_meta(step['action']['meta']))
+
+            if 'args' in step['action']:
+                kwargs.update(step['action']['args'])
 
             # Run the action
             b = action_class(config, **kwargs)
