@@ -32,6 +32,8 @@ class Package(Action):
 
         self.pak_assets = kwargs['pak_assets'] if 'pak_assets' in kwargs else True
         self.nativize_assets = kwargs['nativize_assets'] if 'nativize_assets' in kwargs else True
+        self.compressed_assets = kwargs['compressed_assets'] if 'compressed_assets' in kwargs else True
+        self.no_debug_info = kwargs['no_debug_info'] if 'no_debug_info' in kwargs else False
 
     def run(self):
         if not self.config.check_environment():
@@ -94,13 +96,20 @@ class Package(Action):
                     '-archivedirectory={}'.format(self.config.build_path), '-package',
                     '-clientconfig={}'.format(self.config.configuration), '-ue4exe=UE4Editor-Cmd.exe',
                     '-prereqs', '-targetplatform=Win64', '-platform=Win64',
-                    '-build', '-CrashReporter', '-utf8output', '-compile']
+                    '-build', '-CrashReporter', '-utf8output']
         if self.nativize_assets:
             cmd_args.append('-nativizeAssets')
         if self.pak_assets:
             cmd_args.append('-pak')
+        if self.compressed_assets:
+            cmd_args.append('-compressed')
+        if self.no_debug_info:
+            cmd_args.append('-nodebuginfo')
+
         if self.config.clean:
             cmd_args.append('-clean')
+
+        cmd_args.append('-compile')
 
         print_action('Building, Cooking, and Packaging {} Build'.format(cap_build_name))
         if launch(self.config.UE4RunUATBatPath, cmd_args) != 0:
