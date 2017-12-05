@@ -62,9 +62,6 @@ class ProjectConfig(object):
         # Relative path from the uproject directly to the engine.
         self.engine_path_name = ''
 
-        # This is the name of the project as an editor build project. Usually just "Editor" on the end
-        self.uproject_editor_name = ''  # MyProjectEditor
-
         # Git Config
         self.git_proj_branch = ''  # The branch to use in git repo
         self.git_repo = ''  # ex: git@github.com:MyProject/UnrealEngine.git

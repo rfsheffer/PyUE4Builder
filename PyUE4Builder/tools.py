@@ -3,6 +3,7 @@
 import os
 import click
 import json
+import time
 from utility.common import launch, print_action, get_visual_studio_version, error_exit
 from config import ProjectConfig
 
@@ -61,12 +62,24 @@ def genloc(config):
 
 
 @tools.command()
+@click.option('--umap', '-m',
+              type=click.STRING,
+              default='',
+              help='The map to load')
+@click.option('--waittime', '-w',
+              type=click.INT,
+              default=0,
+              help='Wait time in seconds before trying to connect to the server IP')
+@click.option('--ip', '-i',
+              type=click.STRING,
+              default='',
+              help='IP to connect to as a client')
 @click.option('--extra', '-e',
               type=click.STRING,
               default='',
               help='Extra parameters to pass to the game')
 @pass_config
-def standalone(config, extra):
+def standalone(config, extra, ip, waittime, umap):
     """ Run a standalone build of the game """
     print_action('Running Standalone')
     cmd_args = [config.uproject_file_path,
@@ -75,6 +88,15 @@ def standalone(config, extra):
                 '-ResX=1280',
                 '-ResY=720']
     cmd_args.extend(['-'+arg.strip() for arg in extra.split('-')[1:]])
+
+    if ip != '':
+        # Connecting to a server, give it some time
+        time.sleep(waittime)
+        cmd_args.insert(1, ip)
+
+    if umap != '':
+        cmd_args.insert(1, umap)
+
     launch(config.UE4EditorPath, cmd_args, True, should_wait=False)
 
 

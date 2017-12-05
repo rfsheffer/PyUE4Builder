@@ -16,15 +16,20 @@ class Build(Action):
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.build_name = kwargs["build_name"]
-        self.uproj_path = '' if "uproj_path" not in kwargs else kwargs["uproj_path"]
+        self.is_game_project = kwargs["is_game_project"] if "is_game_project" in kwargs else False
 
     def run(self):
-        print_action('{} {}'.format('Building' if not self.config.clean else 'Cleaning', self.build_name))
+        build_name = self.build_name
+        if self.is_game_project:
+            # project based builds require the project name appended
+            build_name = self.config.uproject_name + build_name
+
+        print_action('{} {}'.format('Building' if not self.config.clean else 'Cleaning', build_name))
         build_tool_path = self.config.UE4BuildBatchPath if not self.config.clean else self.config.UE4CleanBatchPath
 
-        cmd_args = [self.build_name, 'Win64', self.config.configuration]
-        if self.uproj_path != '':
-            cmd_args.append(self.uproj_path)
+        cmd_args = [build_name, 'Win64', self.config.configuration]
+        if self.is_game_project:
+            cmd_args.append(self.config.uproject_file_path)
         cmd_args += ['-NoHotReload', '-waitmutex']
         if get_visual_studio_version() == 2017:
             cmd_args.append('-2017')

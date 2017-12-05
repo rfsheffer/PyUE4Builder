@@ -51,7 +51,6 @@ Here is a base script:
 	"config": {
 		"project_path": "..\\MyGame.uproject",
 		"engine_path_name": "",
-		"uproject_editor_name": "MyGameEditor",
 		"git_proj_branch": "release",
 		"git_repo": "git@github.com:EpicGames/UnrealEngine.git",
 		"UE4EngineKeyName": "UnrealEngine_MyGame",
@@ -66,7 +65,6 @@ Also, but having set "exclude_samples" to true, the 1.3gb of example content wil
 Here is a list of configuration settings:
 * **project_path: str** The path (relative or absolute) of the uproject file.
 * **engine_path_name: str** The path (relative or absolute) to the engine. Relative paths are from the uproject file.
-* **uproject_editor_name: str** The name of the projects editor target. Usually the name of your project with 'Editor' appended. The name of the target can be found in your projects Source directory, usually MyGameEditor.Target.cs.
 * **git_proj_branch: str** The branch to use in git repo. Useful for targeting a specific engine version.
 * **git_repo: str** The git repo you would like to pull the engine from. # ex: git@github.com:MyProject/UnrealEngine.git
 * **UE4EngineKeyName: str** Registry keys and values related to unreal engine paths and our special engine name. If set to nothing, no registery checks or registration of the engine will be performed. This is useful for statically placed engines.
@@ -75,13 +73,23 @@ Here is a list of configuration settings:
 
 Note: You may add new configuration keys to the configuration file, and they will be queryable in your custom action scripts.
 #### Actions
-This section needs to be improved, but this is what an action definition looks like within a build script:
+This section needs to be improved, but this is what action definitions look like within a build script:
 ```json
 {
 	...
-	"pre_game_editor_steps": [
+	"game_editor_steps": [
 		{
-			"desc": "Some some action",
+			"desc": "Game Editor",
+			"action": {
+				"module": "actions.build",
+				"args": {
+					"is_game_project": true,
+					"build_name": "Editor"
+				}
+			}
+		},
+		{
+			"desc": "Some action",
 			"action": {
 				"module": "myactions.myaction",
 				"meta": ["variable_to_send_from_meta"],
@@ -93,7 +101,10 @@ This section needs to be improved, but this is what an action definition looks l
 	]
 }
 ```
-There are 4 step sections which can be used right now: ["pre_game_editor_steps", "post_game_editor_steps", "pre_package_steps", "post_package_steps"]
+There are 4 step sections which can be used right now: ["pre_build_steps", "game_editor_steps", "package_steps", "post_build_steps"]<br />
+By default, if game_editor_steps and package_steps are not defined in the script, the builder will do a general build all pass for both. If you do include
+a steps section, you must fill it in with the build steps you would like as no implicit action will be taken without them.
+
 Inside an action module, there needs to be a class named exactly the same as your action module name, but the first character in the name must be capital.
 Eventually the entire build system will be lists of actions.
 
@@ -128,7 +139,7 @@ D:/MyProjects/CoolProject/RunEditor.bat
 ```
 D:/MyProjects/CoolProject/RunStandalone.bat
 ```batch
-%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\tools.py -s "CoolProject_Build.json" standalone
+%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\tools.py -s "CoolProject_Build.json" standalone -e "-log"
 ```
 D:/MyProjects/CoolProject/GenerateProjectFiles.bat
 ```batch

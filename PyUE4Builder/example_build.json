@@ -2,10 +2,47 @@
 	"config": {
 		"project_path": "MyGame.uproject",
 		"engine_path_name": "",
-		"uproject_editor_name": "MyGameEditor",
 		"git_proj_branch": "release",
 		"git_repo": "git@github.com:EpicGames/UnrealEngine.git",
 		"UE4EngineKeyName": "UnrealEngine_MyGame",
 		"exclude_samples": true
-	}
+	},
+	"game_editor_steps":[
+		{
+			"desc": "Game Editor",
+			"action": {
+				"module": "actions.build",
+				"allow_failure": false,
+				"args": {
+					"is_game_project": true,
+					"build_name": "Editor"
+				}
+			}
+		},
+		{
+			"desc": "Game Server",
+			"enabled": false,
+			"action": {
+				"module": "actions.build",
+				"args": {
+					"is_game_project": true,
+					"build_name": "Server"
+				}
+			}
+		}
+	],
+	"package_steps":[
+		{
+			"desc": "Packaging",
+			"action": {
+				"module": "actions.package",
+				"args": {
+					"nativize_assets": true,
+					"compressed_assets": true,
+					"no_debug_info": false,
+					"full_rebuild": false
+				}
+			}
+		}
+	]
 }

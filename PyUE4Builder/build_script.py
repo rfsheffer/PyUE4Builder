@@ -5,6 +5,7 @@ import os
 import click
 import json
 import importlib
+from copy import deepcopy
 from build_meta import BuildMeta
 from config import ProjectConfig, project_build_types, project_configurations, project_package_types
 from utility.common import launch, print_title, print_action, error_exit, print_error, pull_git_engine, \
@@ -94,30 +95,33 @@ def build_script(engine, script, configuration, buildtype, build, clean):
     else:
         print_warning('Skipping engine and tools build because engine is running!')
 
+    run_build_steps(config, build_meta, 'pre_build_steps')
+
     if config.build_type == "Game":
         if editor_is_running:
             print_warning('Cannot build the Game+Editor while the editor is running!')
             click.pause()
             sys.exit(1)
 
-        run_build_steps(config, build_meta, 'pre_game_editor_steps')
-
-        # Now build the game project itself
-        if config.uproject_editor_name != '':
-            b = Build(config, build_name=config.uproject_editor_name, uproj_path=config.uproject_file_path)
+        if 'game_editor_steps' in config.script:
+            run_build_steps(config, build_meta, 'game_editor_steps')
+        else:
+            b = Build(config, build_name='Editor', is_game_project=True)
             if not b.run():
                 error_exit(b.error)
-        else:
-            print_warning('There is no Game+Editor project defined in configuration! Set ')
 
-        run_build_steps(config, build_meta, 'post_game_editor_steps')
     elif config.build_type == "Package":
+        if editor_is_running:
+            print_warning('You are packaging while also running the editor. '
+                          'This could fail because of memory contraints.')
         if 'package_steps' in config.script:
             run_build_steps(config, build_meta, 'package_steps')
         else:
             package = Package(config)
             if not package.run():
                 error_exit(package.error)
+
+    run_build_steps(config, build_meta, 'post_build_steps')
 
     build_meta.save_meta()
     print_action('SUCCESS!')
@@ -220,6 +224,9 @@ def run_build_steps(config: ProjectConfig, build_meta: BuildMeta, steps_name, co
     if steps_name in config.script:
         steps = config.script[steps_name]
         for step in steps:
+            if "enabled" in step and step["enabled"] is False:
+                continue
+
             print_action('Performing Undescribed step' if 'desc' not in step else step['desc'])
 
             # Get the step class
@@ -239,9 +246,13 @@ def run_build_steps(config: ProjectConfig, build_meta: BuildMeta, steps_name, co
                 kwargs.update(step['action']['args'])
 
             # Run the action
-            b = action_class(config, **kwargs)
+            # We deep copy the configuration so it cannot be tampered with from inside the action.
+            b = action_class(deepcopy(config), **kwargs)
             if not b.run():
-                error_exit(b.error)
+                if "allow_failure" in step and step["allow_failure"] is True:
+                    print_warning(b.error)
+                else:
+                    error_exit(b.error)
 
             # Do meta updates
             if 'meta_updates' in step['action']:
