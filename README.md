@@ -24,7 +24,113 @@ I devised these automation scripts for pulling our custom engine from github and
 While the project only supports windows right now, that is only because the cached paths to tools are expecting .exe binaries. It would be trivial to support Linux or Mac, but I won't be doing this work unless I need to develop for those platforms.
 
 # Integration
-TODO
+You can either use an auto script to pull this project down so it stays up to date, or just update it manually by grabbing the zip.
+
+# Tool Breakdown
+The projects PyUE4Builder folder contains two main scripts which do different things:
+
+**build_script.py** This is the main script for building. It uses your configuration script as a guideline for building your project, and doing any extra pre or post steps.
+###### Arguments:
+* **--clean** This argument will try to clean up your project to get it back to a state before it was built.
+* **--build ['Internal', 'Demo', 'Release']** Which build flavor should be created? Only used for packaging.
+* **--buildtype ['Game', 'Package']** Which type of build are you trying to create? Game+Editor OR Package?"
+* **--configuration ['Shipping', 'Development', 'Debug']** This controls the configuration across a build. Development is default, Debug allows easier C++ debugging, Shipping builds in full optimization mode, and strips a lot development control from the running game.
+* **--script** The build script to use, see the 'Build Script' section below.
+* **--engine** This allows you to specify the location of the engine folder explicitly. Allows absolute and relative paths.
+
+**tools.py** This script contains helpers for launching the editor and standalone, generating project files and building localization.
+###### Arguments:
+* **--script [Script Name]** The build script to use, see the 'Build Script' section below.
+
+### Build Script
+The build script is what tells the tool which project to build and how to build it.
+#### Configuration
+Here is a base script:
+```json
+{
+	"config": {
+		"project_path": "..\\MyGame.uproject",
+		"engine_path_name": "",
+		"uproject_editor_name": "MyGameEditor",
+		"git_proj_branch": "release",
+		"git_repo": "git@github.com:EpicGames/UnrealEngine.git",
+		"UE4EngineKeyName": "UnrealEngine_MyGame",
+		"exclude_samples": true
+	}
+}
+```
+This script would expect a uproject called MyGame to be located one directory level below the tools root. It will try to search out the engine one directory level below the uproject directory.
+It will pull the game engine if nessesary from Epics git repo, and pull the current release version of the engine. And it will register the engine in your systems registry as "UnrealEngine_MyGame".
+Also, but having set "exclude_samples" to true, the 1.3gb of example content will not be pulled by epics git dependencies fetcher.
+
+Here is a list of configuration settings:
+* **project_path: str** The path (relative or absolute) of the uproject file.
+* **engine_path_name: str** The path (relative or absolute) to the engine. Relative paths are from the uproject file.
+* **uproject_editor_name: str** The name of the projects editor target. Usually the name of your project with 'Editor' appended. The name of the target can be found in your projects Source directory, usually MyGameEditor.Target.cs.
+* **git_proj_branch: str** The branch to use in git repo. Useful for targeting a specific engine version.
+* **git_repo: str** The git repo you would like to pull the engine from. # ex: git@github.com:MyProject/UnrealEngine.git
+* **UE4EngineKeyName: str** Registry keys and values related to unreal engine paths and our special engine name. If set to nothing, no registery checks or registration of the engine will be performed. This is useful for statically placed engines.
+* **exclude_samples: bool** If true, the unreal dependency sync will ignore content samples (saving you about 1.4gb give or take). This is great for projects which have no need for content examples.
+* **extra_dependency_excludes: [str]** If there are extra folders that should be ignored in the engines dependency pull, add them here. NOTE: The exclude_samples already excludes all extraneous sample folders. These are paths relative of the engine folder, ex. Engine/Extras/3dsMaxScripts
+
+Note: You may add new configuration keys to the configuration file, and they will be queryable in your custom action scripts.
+#### Actions
+This section needs to be improved, but this is what an action definition looks like within a build script:
+```json
+{
+	...
+	"pre_game_editor_steps": [
+		{
+			"desc": "Some some action",
+			"action": {
+				"module": "myactions.myaction",
+				"meta": ["variable_to_send_from_meta"],
+				"meta_updates": {
+					"variable_to_send_from_meta": "some_variable_that_was_updated"
+				}
+			}
+		}
+	]
+}
+```
+There are 4 step sections which can be used right now: ["pre_game_editor_steps", "post_game_editor_steps", "pre_package_steps", "post_package_steps"]
+Inside an action module, there needs to be a class named exactly the same as your action module name, but the first character in the name must be capital.
+Eventually the entire build system will be lists of actions.
 
 # Usage Examples
-TODO
+Consider an unreal project to be in the folder D:/MyProjects/CoolProject/. Also consider that we want the engine to be in the MyProjects folder.<br />
+We place PyUE4Builder into our MyProjects folder so it looks like this: D:/MyProjects/PyUE4Builder/<br />
+We create a build script called "CoolProject_Build.json" in the CoolProject folder and it contains:
+```json
+{
+	"config": {
+		"project_path": "..\\CoolProject\\CoolProject.uproject",
+		"engine_path_name": "",
+		"uproject_editor_name": "CoolProjectEditor",
+		"git_proj_branch": "release",
+		"git_repo": "git@github.com:EpicGames/UnrealEngine.git",
+		"UE4EngineKeyName": "UnrealEngine_MyEngine"
+	}
+}
+```
+We can then create some batch scripts to simplify starting the tool:<br />
+D:/MyProjects/CoolProject/BuildMyProject.bat
+```batch
+%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\build_script.py -s "CoolProject_Build.json" -t Game
+```
+D:/MyProjects/CoolProject/PackageProject.bat
+```batch
+%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\build_script.py -s "CoolProject_Build.json" -t Package
+```
+D:/MyProjects/CoolProject/RunEditor.bat
+```batch
+%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\tools.py -s "CoolProject_Build.json" runeditor
+```
+D:/MyProjects/CoolProject/RunStandalone.bat
+```batch
+%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\tools.py -s "CoolProject_Build.json" standalone
+```
+D:/MyProjects/CoolProject/GenerateProjectFiles.bat
+```batch
+%MY_PYTHON_PATH%\\python.exe ..\\PyUE4Builder\\PyUE4Builder\\tools.py -s "CoolProject_Build.json" genproj
+```
