@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from actions.action import Action
-from utility.common import launch, print_action
+from utility.common import launch, print_action, print_warning
 import click
 import shutil
 import os
@@ -35,6 +35,10 @@ class Package(Action):
         self.compressed_assets = kwargs['compressed_assets'] if 'compressed_assets' in kwargs else True
         self.no_debug_info = kwargs['no_debug_info'] if 'no_debug_info' in kwargs else False
         self.full_rebuild = kwargs['full_rebuild'] if 'full_rebuild' in kwargs else False
+        self.no_editor_content = kwargs['no_editor_content'] if 'no_editor_content' in kwargs else False
+        self.ignore_cook_errors = kwargs['ignore_cook_errors'] if 'ignore_cook_errors' in kwargs else False
+        self.use_debug_editor_cmd = kwargs['use_debug_editor_cmd'] if 'use_debug_editor_cmd' in kwargs else False
+        self.build_type = kwargs['build_type'] if 'build_type' in kwargs else 'standalone'
 
     def run(self):
         if not self.config.check_environment():
@@ -42,6 +46,17 @@ class Package(Action):
             return False
 
         click.secho('Building for client version {}'.format(self.config.version_str))
+
+        valid_build_types = ['standalone', 'client', 'server']
+        if self.build_type not in valid_build_types:
+            print_warning('Unrecognized build type ({}) for package. Defaulting to "standalone".\n'
+                          'Valid types={}'.format(self.build_type, valid_build_types))
+
+        actual_build_path = self.config.build_path
+        if self.build_type == 'client':
+            actual_build_path += '_client'
+        elif self.build_type == 'server':
+            actual_build_path += '_server'
 
         if self.config.clean:
             # Kill the build directories
@@ -53,7 +68,7 @@ class Package(Action):
                     os.chmod(path, stat.S_IWRITE)
                     os.unlink(path)
 
-            shutil.rmtree(self.config.build_path, onerror=on_rm_error)
+            shutil.rmtree(actual_build_path, onerror=on_rm_error)
 
         demo_build = self.config.package_type == 'Demo'
         release_build = self.config.package_type == 'Release'
@@ -94,10 +109,20 @@ class Package(Action):
         cmd_args = ['-ScriptsForProject={}'.format(self.config.uproject_file_path),
                     'BuildCookRun', '-nocompileeditor', '-NoHotReload', '-nop4',
                     '-project={}'.format(self.config.uproject_file_path), '-cook', '-stage', '-archive',
-                    '-archivedirectory={}'.format(self.config.build_path), '-package',
-                    '-clientconfig={}'.format(self.config.configuration), '-ue4exe=UE4Editor-Cmd.exe',
+                    '-archivedirectory={}'.format(actual_build_path), '-package',
+                    '-clientconfig={}'.format(self.config.configuration),
+                    '-serverconfig={}'.format(self.config.configuration),
+                    '-ue4exe={}'.format('UE4Editor-Win64-Debug-Cmd.exe' if self.use_debug_editor_cmd else
+                                        'UE4Editor-Cmd.exe'),
                     '-prereqs', '-targetplatform=Win64', '-platform=Win64',
+                    '-servertargetplatform=Win64', '-serverplatform=Win64',
                     '-build', '-CrashReporter', '-utf8output']
+
+        if self.build_type == 'client':
+            cmd_args.append('-client')
+        elif self.build_type == 'server':
+            cmd_args.extend(['-server', '-noclient'])
+
         if self.nativize_assets:
             cmd_args.append('-nativizeAssets')
         if self.pak_assets:
@@ -106,9 +131,15 @@ class Package(Action):
             cmd_args.append('-compressed')
         if self.no_debug_info:
             cmd_args.append('-nodebuginfo')
+        if self.no_editor_content:
+            cmd_args.append('-SkipCookingEditorContent')
+        if self.ignore_cook_errors:
+            cmd_args.append('-IgnoreCookErrors')
 
         if self.config.clean or self.full_rebuild:
             cmd_args.append('-clean')
+        else:
+            cmd_args.extend(['-iterate', '-iterativecooking'])
 
         cmd_args.append('-compile')
 

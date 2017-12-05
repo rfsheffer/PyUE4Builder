@@ -36,13 +36,6 @@ def genproj(config):
     """ Generate project file """
     print_action('Generating Project Files')
 
-    # extra_args = ''
-    # if get_visual_studio_version() == 2017:
-    #     extra_args += '-2017'
-    #
-    # ubt_cmd = '{0} -ProjectFiles -project={1} -game -engine {2}'.format(config.UE4UBTPath,
-    #                                                                     config.uproject_file_path,
-    #                                                                     extra_args)
     cmd_args = ['-ProjectFiles',
                 '-project={}'.format(config.uproject_file_path),
                 '-game', '-engine']
@@ -57,9 +50,6 @@ def genproj(config):
 def genloc(config):
     """ Generate localization """
     print_action('Generating Localization')
-    # cmd_str = '{0} {1} -Run=GatherText -config={2} -log'.format(config.UE4EditorPath,
-    #                                                             config.uproject_file_path,
-    #                                                             config.proj_localization_script)
     cmd_args = [config.uproject_file_path,
                 '-Run=GatherText',
                 '-config={}'.format(config.proj_localization_script),
@@ -71,17 +61,20 @@ def genloc(config):
 
 
 @tools.command()
+@click.option('--extra', '-e',
+              type=click.STRING,
+              default='',
+              help='Extra parameters to pass to the game')
 @pass_config
-def standalone(config):
+def standalone(config, extra):
     """ Run a standalone build of the game """
     print_action('Running Standalone')
-    # cmd_str = '{0} {1} -game -windowed -ResX=1280 -ResY=720'.format(config.UE4EditorPath,
-    #                                                                 config.uproject_file_path)
     cmd_args = [config.uproject_file_path,
                 '-game',
                 '-windowed',
                 '-ResX=1280',
                 '-ResY=720']
+    cmd_args.extend(['-'+arg.strip() for arg in extra.split('-')[1:]])
     launch(config.UE4EditorPath, cmd_args, True, should_wait=False)
 
 
@@ -90,7 +83,6 @@ def standalone(config):
 def runeditor(config):
     """ Run the editor with the registered project """
     print_action('Running Editor')
-    # cmd_str = '{0} {1}'.format(config.UE4EditorPath, config.uproject_file_path)
     launch(config.UE4EditorPath, [config.uproject_file_path], True, should_wait=False)
 
 
