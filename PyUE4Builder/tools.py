@@ -90,7 +90,6 @@ def standalone(config, extra, ip, waittime, umap):
     cmd_args.extend(['-'+arg.strip() for arg in extra.split('-')[1:]])
 
     if ip != '':
-        # Connecting to a server, give it some time
         time.sleep(waittime)
         cmd_args.insert(1, ip)
 
@@ -98,6 +97,65 @@ def standalone(config, extra, ip, waittime, umap):
         cmd_args.insert(1, umap)
 
     launch(config.UE4EditorPath, cmd_args, True, should_wait=False)
+
+
+@tools.command()
+@click.option('--umap', '-m',
+              type=click.STRING,
+              default='',
+              help='The map to load')
+@click.option('--extra', '-e',
+              type=click.STRING,
+              default='',
+              help='Extra parameters to pass to the game')
+@pass_config
+def server(config, extra, umap):
+    """ Run a server """
+    print_action('Running Server')
+    cmd_args = []
+    cmd_args.extend(['-' + arg.strip() for arg in extra.split('-')[1:]])
+
+    if umap != '':
+        cmd_args.insert(0, umap)
+
+    server_exe_path = os.path.join(config.uproject_dir_path,
+                                   'builds\\internal_server\\WindowsServer\\{0}\\Binaries\\'
+                                   'Win64\\{0}Server.exe'.format(config.uproject_name))
+    if not os.path.isfile(server_exe_path):
+        error_exit('Server is not built!')
+
+    launch(server_exe_path, cmd_args, True, should_wait=False)
+
+
+@tools.command()
+@click.option('--ip', '-i',
+              type=click.STRING,
+              default='',
+              help='IP to connect to as a client')
+@click.option('--extra', '-e',
+              type=click.STRING,
+              default='',
+              help='Extra parameters to pass to the game')
+@pass_config
+def client(config, extra, ip):
+    """ Run the client """
+    print_action('Running Client')
+    cmd_args = ['-game',
+                '-windowed',
+                '-ResX=1280',
+                '-ResY=720']
+    cmd_args.extend(['-' + arg.strip() for arg in extra.split('-')[1:]])
+
+    if ip != '':
+        cmd_args.insert(0, ip)
+
+    client_exe_path = os.path.join(config.uproject_dir_path,
+                                   'builds\\internal\\WindowsNoEditor\\{0}\\Binaries\\'
+                                   'Win64\\{0}.exe'.format(config.uproject_name))
+    if not os.path.isfile(client_exe_path):
+        error_exit('Client is not built!')
+
+    launch(client_exe_path, cmd_args, True, should_wait=False)
 
 
 @tools.command()
