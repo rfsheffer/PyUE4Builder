@@ -86,8 +86,9 @@ def build_script(engine, script, configuration, buildtype, build, clean):
 
     # Build UE4 Engine and Prereqs that might've gotten cleaned
     if not editor_is_running:
-        tools_to_build = ['UnrealHeaderTool', 'UnrealFrontend', 'ShaderCompileWorker', 'UnrealLightmass',
-                          'CrashReportClient', 'UE4Editor']
+        tools_to_build = ['UnrealFrontend', 'ShaderCompileWorker', 'UnrealLightmass', 'CrashReportClient', 'UE4Editor']
+        if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
+            tools_to_build.insert(0, 'UnrealHeaderTool')
         for tool_name in tools_to_build:
             b = Build(config, build_name=tool_name)
             if not b.run():
@@ -199,7 +200,7 @@ def ensure_engine(config, engine_override, editor_running):
         if launch(config.UE4GitDependenciesPath, cmd_args) != 0:
             error_exit('Engine dependencies Failed to Sync!')
 
-        if not os.path.exists(config.UE4UBTPath):
+        if not os.path.isfile(config.UE4UBTPath):
             # The unreal build tool does not exist, we need to build it first
             # We use the generate project files batch script because it ensures the build tool exists,
             # and builds it if not.
