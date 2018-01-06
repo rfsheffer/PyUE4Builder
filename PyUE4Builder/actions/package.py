@@ -16,7 +16,6 @@ class Package(Action):
     """
     Package action.
     This action is used to build and package a project.
-    TODO: This should be broken up into sub actions (build, cook, package) for finer grained control.
     """
 
     # Other relative to project paths
@@ -39,6 +38,7 @@ class Package(Action):
         self.ignore_cook_errors = kwargs['ignore_cook_errors'] if 'ignore_cook_errors' in kwargs else False
         self.use_debug_editor_cmd = kwargs['use_debug_editor_cmd'] if 'use_debug_editor_cmd' in kwargs else False
         self.build_type = kwargs['build_type'] if 'build_type' in kwargs else 'standalone'
+        self.maps = kwargs['maps'] if 'maps' in kwargs else []
 
     def run(self):
         if not self.config.check_environment():
@@ -135,6 +135,9 @@ class Package(Action):
             cmd_args.append('-SkipCookingEditorContent')
         if self.ignore_cook_errors:
             cmd_args.append('-IgnoreCookErrors')
+
+        if len(self.maps) > 0:
+            cmd_args.append('-map={}'.format('+'.join(self.maps)))
 
         if self.config.clean or self.full_rebuild:
             cmd_args.append('-clean')
