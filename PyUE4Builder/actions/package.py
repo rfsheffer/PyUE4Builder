@@ -144,7 +144,7 @@ class Package(Action):
 
         if self.nativize_assets:
             cmd_args.append('-nativizeAssets')
-        if self.pak_assets:
+        if self.pak_assets and self.stage:
             cmd_args.append('-pak')
         if self.compressed_assets:
             cmd_args.append('-compressed')
