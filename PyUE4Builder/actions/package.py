@@ -15,7 +15,7 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
 class Package(Action):
     """
     Package action.
-    This action is used to build and package a project.
+    This action is used to build, cook and package a project.
     """
 
     # Other relative to project paths
@@ -37,8 +37,15 @@ class Package(Action):
         self.no_editor_content = kwargs['no_editor_content'] if 'no_editor_content' in kwargs else False
         self.ignore_cook_errors = kwargs['ignore_cook_errors'] if 'ignore_cook_errors' in kwargs else False
         self.use_debug_editor_cmd = kwargs['use_debug_editor_cmd'] if 'use_debug_editor_cmd' in kwargs else False
-        self.build_type = kwargs['build_type'] if 'build_type' in kwargs else 'standalone'
+        self.build_type = kwargs['build_type'] if 'build_type' in kwargs else ''
         self.maps = kwargs['maps'] if 'maps' in kwargs else []
+
+        # Control the pipeline
+        self.build = kwargs['build'] if 'build' in kwargs else True
+        self.cook = kwargs['cook'] if 'cook' in kwargs else True
+        self.package = kwargs['package'] if 'package' in kwargs else True
+        self.stage = kwargs['stage'] if 'stage' in kwargs else True
+        self.archive = kwargs['archive'] if 'archive' in kwargs else True
 
     def run(self):
         if not self.config.check_environment():
@@ -51,6 +58,7 @@ class Package(Action):
         if self.build_type not in valid_build_types:
             print_warning('Unrecognized build type ({}) for package. Defaulting to "standalone".\n'
                           'Valid types={}'.format(self.build_type, valid_build_types))
+            self.build_type = 'standalone'
 
         actual_build_path = self.config.build_path
         if self.build_type == 'client':
@@ -108,15 +116,26 @@ class Package(Action):
 
         cmd_args = ['-ScriptsForProject={}'.format(self.config.uproject_file_path),
                     'BuildCookRun', '-nocompileeditor', '-NoHotReload', '-nop4',
-                    '-project={}'.format(self.config.uproject_file_path), '-cook', '-stage', '-archive',
-                    '-archivedirectory={}'.format(actual_build_path), '-package',
+                    '-project={}'.format(self.config.uproject_file_path),
+                    '-archivedirectory={}'.format(actual_build_path),
                     '-clientconfig={}'.format(self.config.configuration),
                     '-serverconfig={}'.format(self.config.configuration),
                     '-ue4exe={}'.format('UE4Editor-Win64-Debug-Cmd.exe' if self.use_debug_editor_cmd else
                                         'UE4Editor-Cmd.exe'),
                     '-prereqs', '-targetplatform=Win64', '-platform=Win64',
                     '-servertargetplatform=Win64', '-serverplatform=Win64',
-                    '-build', '-CrashReporter', '-utf8output']
+                    '-CrashReporter', '-utf8output']
+
+        if self.build:
+            cmd_args.append('-build')
+        if self.cook:
+            cmd_args.append('-cook')
+        if self.package:
+            cmd_args.append('-package')
+        if self.stage:
+            cmd_args.append('-stage')
+        if self.archive:
+            cmd_args.append('-archive')
 
         if self.build_type == 'client':
             cmd_args.append('-client')
