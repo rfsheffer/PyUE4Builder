@@ -15,6 +15,8 @@ project_configurations = ['Shipping', 'Development', 'Debug']
 project_build_types = ['Game', 'Package']
 project_package_types = ['Internal', 'Demo', 'Release']
 
+platform_types = ['Win32', 'Win64', "Linux", "Android", "IOS", "TVOS", "Mac", "PS4", "XboxOne", "Switch"]
+
 
 class ProjectConfig(object):
     """
