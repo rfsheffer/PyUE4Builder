@@ -19,8 +19,6 @@ class Package(Action):
     """
 
     # Other relative to project paths
-    demo_switch_file_path = 'Source\\ShooterStream\\build_demo.txt'
-    release_switch_file_path = 'Source\\ShooterStream\\build_release.txt'
     build_blacklist_dir = 'Build\\Win64'
 
     # Constants
@@ -47,12 +45,12 @@ class Package(Action):
         self.stage = kwargs['stage'] if 'stage' in kwargs else True
         self.archive = kwargs['archive'] if 'archive' in kwargs else True
 
-    def run(self):
-        if not self.config.check_environment():
-            self.error = 'Environment is not ready for building or packaging!'
-            return False
+        # Argument to specify a content blacklist to use with this packaging.
+        self.content_black_list = kwargs['content_black_list'] if 'content_black_list' in kwargs else ''
 
-        click.secho('Building for client version {}'.format(self.config.version_str))
+    def verify(self):
+        if not self.config.check_environment():
+            return 'Environment is not ready for building or packaging!'
 
         valid_build_types = ['standalone', 'client', 'server']
         if self.build_type not in valid_build_types:
@@ -60,11 +58,14 @@ class Package(Action):
                           'Valid types={}'.format(self.build_type, valid_build_types))
             self.build_type = 'standalone'
 
-        actual_build_path = self.config.build_path
-        if self.build_type == 'client':
-            actual_build_path += '_client'
-        elif self.build_type == 'server':
-            actual_build_path += '_server'
+        return ''
+
+    def run(self):
+        self.error = self.verify()
+        if self.error != '':
+            return False
+
+        click.secho('Building for client version {}'.format(self.config.version_str))
 
         if self.config.clean:
             # Kill the build directories
@@ -76,48 +77,31 @@ class Package(Action):
                     os.chmod(path, stat.S_IWRITE)
                     os.unlink(path)
 
-            shutil.rmtree(actual_build_path, onerror=on_rm_error)
+            if self.build_type == 'client':
+                shutil.rmtree(os.path.join(self.config.builds_path, 'WindowsClient'), onerror=on_rm_error)
+            elif self.build_type == 'server':
+                shutil.rmtree(os.path.join(self.config.builds_path, 'WindowsServer'), onerror=on_rm_error)
+            else:
+                shutil.rmtree(os.path.join(self.config.builds_path, 'WindowsNoEditor'), onerror=on_rm_error)
 
-        demo_build = self.config.package_type == 'Demo'
-        release_build = self.config.package_type == 'Release'
-
-        cap_build_name = self.config.package_type.title()
+        cap_build_name = self.config.uproject_name.title()
         print_action('Building {} Build'.format(cap_build_name))
-        # *************************************************
-        # DEMO SWITCH
-        if not demo_build and os.path.isfile(os.path.join(self.config.uproject_dir_path, self.demo_switch_file_path)):
-            os.unlink(os.path.join(self.config.uproject_dir_path, self.demo_switch_file_path))
-        elif demo_build and not os.path.isfile(os.path.join(self.config.uproject_dir_path, self.demo_switch_file_path)):
-            print_action('Flipping demo build switch')
-            fp = open(os.path.join(self.config.uproject_dir_path, self.demo_switch_file_path), 'w')
-            fp.close()
-        # *************************************************
-        # RELEASE SWITCH
-        if not release_build and os.path.isfile(os.path.join(self.config.uproject_dir_path,
-                                                             self.release_switch_file_path)):
-            os.unlink(os.path.join(self.config.uproject_dir_path, self.release_switch_file_path))
-        elif release_build and not os.path.isfile(os.path.join(self.config.uproject_dir_path,
-                                                               self.release_switch_file_path)):
-            print_action('Flipping release build switch')
-            fp = open(os.path.join(self.config.uproject_dir_path, self.release_switch_file_path), 'w')
-            fp.close()
 
-        # If Demo, create demo content blacklist
         build_blacklist_file_path = os.path.join(self.config.uproject_dir_path,
                                                  self.build_blacklist_dir,
                                                  self.blacklist_file_name.format(self.config.configuration))
-        if demo_build:
-            print_action('Setting up demo blacklist for configuration {}'.format(self.config.configuration))
+        if self.content_black_list != '':
+            print_action('Setting up content blacklist for configuration {}'.format(self.config.configuration))
             if os.path.isfile(build_blacklist_file_path):
                 os.unlink(build_blacklist_file_path)
             os.makedirs(os.path.join(self.config.uproject_dir_path, self.build_blacklist_dir), exist_ok=True)
-            shutil.copyfile(os.path.join(self.config.uproject_dir_path, 'demo_map_blacklist.txt'),
-                            os.path.join(build_blacklist_file_path))
+            shutil.copyfile(os.path.join(self.config.uproject_dir_path, self.content_black_list),
+                            build_blacklist_file_path)
 
         cmd_args = ['-ScriptsForProject={}'.format(self.config.uproject_file_path),
                     'BuildCookRun', '-nocompileeditor', '-NoHotReload', '-nop4',
                     '-project={}'.format(self.config.uproject_file_path),
-                    '-archivedirectory={}'.format(actual_build_path),
+                    '-archivedirectory={}'.format(self.config.builds_path),
                     '-clientconfig={}'.format(self.config.configuration),
                     '-serverconfig={}'.format(self.config.configuration),
                     '-ue4exe={}'.format('UE4Editor-Win64-Debug-Cmd.exe' if self.use_debug_editor_cmd else
@@ -167,15 +151,8 @@ class Package(Action):
 
         print_action('Building, Cooking, and Packaging {} Build'.format(cap_build_name))
         if launch(self.config.UE4RunUATBatPath, cmd_args) != 0:
-            self.error = 'Unable to build {}!'.format(self.config.package_type)
+            self.error = 'Unable to build {}!'.format(self.config.uproject_name)
             return False
-
-        # Don't leave the demo switch around so it doesn't contaminate local builds
-        if os.path.isfile(os.path.join(self.config.uproject_dir_path, self.demo_switch_file_path)):
-            os.unlink(os.path.join(self.config.uproject_dir_path, self.demo_switch_file_path))
-
-        if os.path.isfile(os.path.join(self.config.uproject_dir_path, self.release_switch_file_path)):
-            os.unlink(os.path.join(self.config.uproject_dir_path, self.release_switch_file_path))
 
         # Don't leave blacklist around
         if os.path.isfile(build_blacklist_file_path):

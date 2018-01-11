@@ -13,26 +13,30 @@ __credits__ = ["Ryan Sheffer"]
 STEAMWORKS_USER_ENV_VAR = 'STEAMWORKS_USER'
 STEAMWORKS_PASS_ENV_VAR = 'STEAMWORKS_PASS'
 
-# TODO: Move these into the configuration
-builder_exe_path = "ThirdParty\\Steam\\tools\\ContentBuilder\\builder\\steamcmd.exe"
-steam_app_dir = 'ThirdParty\\Steam\\tools\\ContentBuilder\\scripts\\'
-steam_app_template = 'ThirdParty\\Steam\\tools\\ContentBuilder\\scripts\\app_build_626250.vdf'
-steam_demo_app_template = 'ThirdParty\\Steam\\tools\\ContentBuilder\\scripts\\app_build_726310.vdf'
-install_script_rel_path = 'WindowsNoEditor\\Engine\\Extras\\Redist\\en-us\\steam_redist_installscript.vdf'
-
 
 class Steamupload(Action):
     """
     Upload to steam action
+    This action is designed to assist in your builds being uploaded to stream for release or testing purposes.
+    TODO: Documentation and improvements!
     """
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.set_live = kwargs['set_live'] if 'set_live' in kwargs else ''
 
+        # Example: "ThirdParty\\Steam\\tools\\ContentBuilder\\builder\\steamcmd.exe"
+        self.builder_exe_path = kwargs['builder_exe_path'] if 'builder_exe_path' in kwargs else ''
+        # Example: 'ThirdParty\\Steam\\tools\\ContentBuilder\\scripts\\'
+        self.steam_app_dir = kwargs['steam_app_dir'] if 'steam_app_dir' in kwargs else ''
+        # Example: 'ThirdParty\\Steam\\tools\\ContentBuilder\\scripts\\app_build_626250.vdf'
+        self.steam_app_template = kwargs['steam_app_template'] if 'steam_app_template' in kwargs else ''
+        # Example: 'WindowsNoEditor\\Engine\\Extras\\Redist\\en-us\\steam_redist_installscript.vdf'
+        self.install_script_rel_path = kwargs['install_script_rel_path'] if 'install_script_rel_path' in kwargs else ''
+
     def run(self):
         if self.config.clean:
             return True
-        if self.config.package_type != 'Package':
+        if self.config.build_type != 'Package':
             self.error = 'Steam Upload is only run on package builds!'
             return False
         if STEAMWORKS_PASS_ENV_VAR not in os.environ:
@@ -42,42 +46,41 @@ class Steamupload(Action):
             self.error = 'Steamworks user not on environment!'
             return False
 
-        demo_build = self.config.package_type == 'Demo'
-        release_build = self.config.package_type == 'Release'
-
-        template_file_path = os.path.join(self.config.uproject_dir_path,
-                                          steam_demo_app_template if demo_build else steam_app_template)
+        template_file_path = os.path.join(self.config.uproject_dir_path, self.steam_app_template)
 
         auto_file_path = os.path.join(self.config.uproject_dir_path,
-                                      steam_app_dir,
-                                      '{}_build.vdf'.format(self.config.package_type.lower()))
+                                      self.steam_app_dir,
+                                      '{}_build.vdf'.format(self.config.uproject_name.lower()))
 
         self.create_app_build_script(template_file_path,
                                      auto_file_path,
-                                     '..\\..\\..\\..\\..\\builds\\{}\\WindowsNoEditor'.format(self.config.build_name),
-                                     '{} Version {}'.format(self.config.package_type, self.config.version_str),
+                                     '..\\..\\..\\..\\..\\builds\\WindowsNoEditor',
+                                     '{} Version {}'.format(self.config.uproject_name, self.config.version_str),
                                      self.set_live)
 
         try:
-            steam_app_id_name = 'steam_appid_demo.txt' if demo_build else 'steam_appid.txt'
+            steam_app_id_name = 'steam_appid.txt'
             shutil.copy2(os.path.join(self.config.uproject_dir_path, steam_app_id_name),
-                         os.path.join(self.config.build_path, 'WindowsNoEditor\\steam_appid.txt'))
-            shutil.copy2(os.path.join(self.config.uproject_dir_path, 'steam_redist_installscript.vdf'),
-                         os.path.join(self.config.build_path, install_script_rel_path))
+                         os.path.join(self.config.builds_path,
+                                      'WindowsNoEditor\\steam_appid.txt'))
+            if self.install_script_rel_path != '':
+                shutil.copy2(os.path.join(self.config.uproject_dir_path, 'steam_redist_installscript.vdf'),
+                             os.path.join(self.config.builds_path,
+                                          self.install_script_rel_path))
             print_action('Steam required files inserted into build')
         except Exception:
             pass
 
-        print_action('Uploading {} Build to Steam'.format(self.config.package_type))
+        print_action('Uploading {} Build to Steam'.format(self.config.uproject_name))
         cmd_args = ['+login',
                     os.environ[STEAMWORKS_USER_ENV_VAR],
                     os.environ[STEAMWORKS_PASS_ENV_VAR],
                     '+run_app_build',
-                    '..\\scripts\\{}_build.vdf'.format(self.config.package_type.lower()),
+                    '..\\scripts\\{}_build.vdf'.format(self.config.uproject_name.lower()),
                     '+quit']
 
-        if launch(os.path.join(self.config.uproject_dir_path, builder_exe_path), cmd_args) != 0:
-            self.error = 'Unable to upload build {} to steam!'.format(self.config.package_type)
+        if launch(os.path.join(self.config.uproject_dir_path, self.builder_exe_path), cmd_args) != 0:
+            self.error = 'Unable to upload build {} to steam!'.format(self.config.uproject_name)
             return False
         return True
 
