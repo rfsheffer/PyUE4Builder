@@ -119,7 +119,7 @@ def server(config, extra, umap):
         cmd_args.insert(0, umap)
 
     server_exe_path = os.path.join(config.uproject_dir_path,
-                                   'builds\\internal_server\\WindowsServer\\{0}\\Binaries\\'
+                                   'builds\\WindowsServer\\{0}\\Binaries\\'
                                    'Win64\\{0}Server.exe'.format(config.uproject_name))
     if not os.path.isfile(server_exe_path):
         error_exit('Server is not built!')
@@ -150,7 +150,7 @@ def client(config, extra, ip):
         cmd_args.insert(0, ip)
 
     client_exe_path = os.path.join(config.uproject_dir_path,
-                                   'builds\\internal\\WindowsNoEditor\\{0}\\Binaries\\'
+                                   'builds\\WindowsNoEditor\\{0}\\Binaries\\'
                                    'Win64\\{0}.exe'.format(config.uproject_name))
     if not os.path.isfile(client_exe_path):
         error_exit('Client is not built!')

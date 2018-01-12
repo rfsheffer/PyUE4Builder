@@ -7,7 +7,7 @@ import json
 import importlib
 from copy import deepcopy
 from build_meta import BuildMeta
-from config import ProjectConfig, project_build_types, project_configurations, project_package_types
+from config import ProjectConfig, project_build_types, project_configurations
 from utility.common import launch, print_title, print_action, error_exit, print_error, pull_git_engine, \
     get_visual_studio_version, register_project_engine, print_warning, is_editor_running
 from actions.build import Build
@@ -24,11 +24,6 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
               default=False,
               show_default=True,
               help='Clean build? This will leave everything in a cleaned, un-usable state.')
-@click.option('--build', '-b',
-              type=click.Choice(project_package_types),
-              default='Internal',
-              show_default=True,
-              help='Which build should be created? Only used for packaging.')
 @click.option('--buildtype', '-t',
               type=click.Choice(project_build_types),
               default='Game',
@@ -47,14 +42,13 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, build, clean):
+def build_script(engine, script, configuration, buildtype, clean):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
     :param script: The Project Script which defines the projects paths, build steps, and extra information.
     :param configuration: Build configuration, e.g. Shipping
     :param buildtype: Which type of build are you trying to create? Game+Editor OR Package?
-    :param build: Which type of build are you trying to create? Game+Editor OR Package?
     :param clean: Clean build? This will leave everything in a cleaned, un-usable state.
     """
     # Ensure Visual Studio is installed
@@ -68,7 +62,7 @@ def build_script(engine, script, configuration, buildtype, build, clean):
     with open(script, 'r') as fp:
         script_json = json.load(fp)
 
-    config = ProjectConfig(configuration, buildtype, build, clean)
+    config = ProjectConfig(configuration, buildtype, clean)
     if not config.load_configuration(script_json, engine, False):
         error_exit('Failed to load configuration. See errors above.')
 

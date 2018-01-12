@@ -13,7 +13,12 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
 
 project_configurations = ['Shipping', 'Development', 'Debug']
 project_build_types = ['Game', 'Package']
-project_package_types = ['Internal', 'Demo', 'Release']
+
+# The names of the platforms the engine understands
+platform_types = ['Win32', 'Win64', "Linux", "Android", "IOS", "TVOS", "Mac", "PS4", "XboxOne", "Switch"]
+
+# The names prepended to output build folders for platforms
+platform_long_names = ["Windows", "Windows", "Linux", "Android", "IOS", "TVOS", "Mac", "PS4", "XboxOne", "Switch"]
 
 
 class ProjectConfig(object):
@@ -21,18 +26,17 @@ class ProjectConfig(object):
     Common configuration and paths for unreal project automation processes
     Extra variables are injected via the build scripts
     """
-    def __init__(self, configuration="Development", build_type="Game", package_type="Internal", clean=False):
+    def __init__(self, configuration="Development", build_type="Game", clean=False):
         # Build Switches
         self.configuration = configuration
         self.build_type = build_type
-        self.package_type = package_type
         self.clean = clean
 
         # The loaded script json for the project. Keeping around for the build process.
         self.script = None
 
-        # Path to the build being created (only for packaging)
-        self.build_path = ''
+        # Path to where package builds are placed
+        self.builds_path = ''
 
         # The name of the uproject
         self.uproject_name = ''
@@ -100,9 +104,6 @@ class ProjectConfig(object):
         if self.build_type not in project_build_types:
             print_error('Invalid Configuration!')
             return False
-        if self.package_type not in project_package_types:
-            print_error('Invalid Package Type!')
-            return False
 
         try:
             self.script = deepcopy(script_json)
@@ -132,8 +133,7 @@ class ProjectConfig(object):
         except Exception:
             pass
 
-        # Determine a build output path for packaging with this configuration
-        self.build_path = os.path.join(self.uproject_dir_path, 'builds\\{}'.format(self.package_type.lower()))
+        self.builds_path = os.path.join(self.uproject_dir_path, 'builds')
 
         if not self.setup_engine_paths(custom_engine_path) and ensure_engine:
             print_error("No engine could be found!")

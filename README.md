@@ -32,7 +32,6 @@ The projects PyUE4Builder folder contains two main scripts which do different th
 **build_script.py** This is the main script for building. It uses your configuration script as a guideline for building your project, and doing any extra pre or post steps.
 ###### Arguments:
 * **--clean** This argument will try to clean up your project to get it back to a state before it was built.
-* **--build ['Internal', 'Demo', 'Release']** Which build flavor should be created? Only used for packaging.
 * **--buildtype ['Game', 'Package']** Which type of build are you trying to create? Game+Editor OR Package?"
 * **--configuration ['Shipping', 'Development', 'Debug']** This controls the configuration across a build. Development is default, Debug allows easier C++ debugging, Shipping builds in full optimization mode, and strips a lot development control from the running game.
 * **--script** The build script to use, see the 'Build Script' section below.
