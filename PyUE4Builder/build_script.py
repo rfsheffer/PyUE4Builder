@@ -8,10 +8,11 @@ import importlib
 from copy import deepcopy
 from build_meta import BuildMeta
 from config import ProjectConfig, project_build_types, project_configurations
-from utility.common import launch, print_title, print_action, error_exit, print_error, pull_git_engine, \
+from utility.common import launch, print_title, print_action, error_exit, print_error, \
     get_visual_studio_version, register_project_engine, print_warning, is_editor_running
 from actions.build import Build
 from actions.package import Package
+from actions.git import Git
 
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
@@ -167,8 +168,14 @@ def ensure_engine(config, engine_override, editor_running):
 
     # Before doing anything, make sure we have all build dependencies ready
     if not config.clean and can_pull_engine:
-        if not pull_git_engine(config, False):
-            error_exit('Git Pull Failure!')
+        git_action = Git(config)
+        git_action.branch_name = config.git_proj_branch
+        git_action.repo_name = config.git_repo
+        git_action.output_folder = config.UE4EnginePath
+        git_action.disable_strict_hostkey_check = True
+        git_action.force_repull = False
+        if not git_action.run():
+            error_exit(git_action.error)
 
     if not config.setup_engine_paths(engine_override):
         error_exit('Could not setup valid engine paths!')

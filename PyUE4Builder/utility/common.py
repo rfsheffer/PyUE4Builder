@@ -246,65 +246,6 @@ def register_project_engine(config, prompt_path=True):
     return True
 
 
-def pull_git_engine(config, force_repull=False):
-    """
-    Helper for pulling the unreal engine from git.
-    NOTE: For this call to work, you will need to have a git SSH cert in your %USERDIR%/.ssh folder. Also you will
-    have to whitelist the cert by running a git command first. Still havn't figured out a way of making this automagic..
-    :param config: The current configuration
-    :param force_repull: Should the engine be re-pulled? This deletes the engine entirely!
-    :return: True if nothing went wrong
-    """
-    # First make sure we actually have git credentials
-    ssh_path = os.path.join(os.environ['USERPROFILE'], '.ssh')
-    if not os.path.exists(ssh_path):
-        rsa_file = os.path.join(config.uproject_dir_path, 'Scripts\\rsa\\id_rsa')
-        if not os.path.isfile(rsa_file):
-            print_error('No git credentials exist. You can attain credentials from a project manager!')
-            return False
-        os.mkdir(ssh_path)
-        shutil.copy2(rsa_file, ssh_path)
-
-    # To get around the annoying user prompt, lets just set github to be trusted, no key checking
-    if not os.path.isfile(os.path.join(ssh_path, 'config')):
-        with open(os.path.join(ssh_path, 'config'), 'w') as fp:
-            fp.write('Host github.com\nStrictHostKeyChecking no')
-
-    if force_repull and os.path.exists(config.UE4EnginePath):
-        print_action("Deleting Unreal Engine Folder for a complete re-pull")
-
-        def on_rm_error(func, path, exc_info):
-            # path contains the path of the file that couldn't be removed
-            # let's just assume that it's read-only and unlink it.
-            del func  # unused
-            if exc_info[0] is not FileNotFoundError:
-                os.chmod(path, stat.S_IWRITE)
-                os.unlink(path)
-
-        # Forcing a re-pull, delete the whole engine directory!
-        shutil.rmtree(config.UE4EnginePath, onerror=on_rm_error)
-
-    if not os.path.isdir(config.UE4EnginePath):
-        os.makedirs(config.UE4EnginePath)
-
-    if not os.path.isdir(os.path.join(config.UE4EnginePath, '.git')):
-        # Engine not setup, do so!
-        print_action("Cloning UnrealEngine from GitHub")
-        cmd_args = ['clone', '-b', config.git_proj_branch, config.git_repo, config.UE4EnginePath]
-        err = launch('git', cmd_args)
-        if err != 0:
-            print_error('Git clone failed!')
-            return False
-    else:
-        with push_directory(config.UE4EnginePath):
-            print_action("Pulling UnrealEngine from GitHub")
-            err = launch('git', ['pull'], silent=True)
-            if err != 0:
-                print_error('Git pull failed!')
-                return False
-    return True
-
-
 def do_ms_build(proj_path):
     ms_build_tool = os.path.expandvars('%ProgramFiles(x86)%\\MSBuild\\14.0\\bin\\MSBuild.exe')
     cmd_str = '{} /nologo /verbosity:quiet {} ' \
