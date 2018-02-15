@@ -9,7 +9,7 @@ from copy import deepcopy
 from build_meta import BuildMeta
 from config import ProjectConfig, project_build_types, project_configurations
 from utility.common import launch, print_title, print_action, error_exit, print_error, \
-    get_visual_studio_version, register_project_engine, print_warning, is_editor_running
+    get_visual_studio_version, register_project_engine, print_warning
 from actions.build import Build
 from actions.package import Package
 from actions.git import Git
@@ -20,16 +20,19 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
 
 
 @click.command()
-@click.option('--clean', '-c',
-              is_flag=True,
+@click.option('--clean/--no-clean',
               default=False,
               show_default=True,
-              help='Clean build? This will leave everything in a cleaned, un-usable state.')
+              help='Causes all actions to consider cleaning up their workspaces before executing their action.')
+@click.option('--build', '-b',
+              default='',
+              show_default=True,
+              help="Which build steps defined in the build script to execute?")
 @click.option('--buildtype', '-t',
               type=click.Choice(project_build_types),
-              default='Game',
+              default='Editor',
               show_default=True,
-              help="Which type of build are you trying to create? Game+Editor OR Package?")
+              help="(Deprecated, use 'build' option) Which type of build are you trying to create? Editor OR Package?")
 @click.option('--configuration', '-c',
               type=click.Choice(project_configurations),
               default='Development',
@@ -43,15 +46,20 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, clean):
+def build_script(engine, script, configuration, buildtype, build, clean):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
     :param script: The Project Script which defines the projects paths, build steps, and extra information.
     :param configuration: Build configuration, e.g. Shipping
     :param buildtype: Which type of build are you trying to create? Game+Editor OR Package?
-    :param clean: Clean build? This will leave everything in a cleaned, un-usable state.
+    :param build: Which build steps to execute?
+    :param clean: Causes all actions to consider cleaning up their workspaces before executing their action.
     """
+    # Fixup for old build type 'Game'.
+    if buildtype == 'Game':
+        buildtype = 'Editor'
+
     # Ensure Visual Studio is installed
     if get_visual_studio_version() not in [2015, 2017]:
         print_error('Cannot run build, valid visual studio install not found!')
@@ -73,14 +81,16 @@ def build_script(engine, script, configuration, buildtype, clean):
     if "meta" in config.script:
         build_meta.insert_meta(**config.script["meta"])
 
-    editor_is_running = is_editor_running(config.UE4EnginePath)
-
     # Ensure the engine exists and we can build
-    ensure_engine(config, engine, editor_is_running)
+    ensure_engine(config, engine)
     click.secho('\nProject File Path: {}\nEngine Path: {}'.format(config.uproject_dir_path, config.UE4EnginePath))
 
     # Build UE4 Engine and Prereqs that might've gotten cleaned
-    if not editor_is_running:
+    if not config.editor_running:
+        clean_revert = config.clean
+        if config.build_type == "Package":
+            # In package build don't bother cleaning editor tools
+            config.clean = False
         tools_to_build = ['UnrealFrontend', 'ShaderCompileWorker', 'UnrealLightmass', 'CrashReportClient', 'UE4Editor']
         if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
             tools_to_build.insert(0, 'UnrealHeaderTool')
@@ -88,28 +98,30 @@ def build_script(engine, script, configuration, buildtype, clean):
             b = Build(config, build_name=tool_name)
             if not b.run():
                 error_exit(b.error)
+        config.clean = clean_revert
     else:
         print_warning('Skipping engine and tools build because engine is running!')
 
     run_build_steps(config, build_meta, 'pre_build_steps')
 
-    if config.build_type == "Game":
-        if editor_is_running:
-            print_warning('Cannot build the Game+Editor while the editor is running!')
+    if build != '':
+        run_build_steps(config, build_meta, build)
+    elif config.build_type == "Editor":
+        if config.editor_running:
+            print_warning('Cannot build the Editor while the editor is running!')
             click.pause()
             sys.exit(1)
 
         if 'game_editor_steps' in config.script:
             run_build_steps(config, build_meta, 'game_editor_steps')
+        elif 'editor_steps' in config.script:
+            run_build_steps(config, build_meta, 'editor_steps')
         else:
             b = Build(config, build_name='Editor', is_game_project=True)
             if not b.run():
                 error_exit(b.error)
 
     elif config.build_type == "Package":
-        if editor_is_running:
-            print_warning('You are packaging while also running the editor. '
-                          'This could fail because of memory contraints.')
         if 'package_steps' in config.script:
             run_build_steps(config, build_meta, 'package_steps')
         else:
@@ -124,19 +136,15 @@ def build_script(engine, script, configuration, buildtype, clean):
     click.pause()
 
 
-def ensure_engine(config, engine_override, editor_running):
+def ensure_engine(config, engine_override):
     """
     Pre-work step of ensuring we have a valid engine and enough components exist to do work
     :param config: The project configuration (may not point to a valid engine yet)
     :param engine_override: The desired engine directory path to use
-    :param editor_running: Is the engine currently running?
     """
     can_pull_engine = config.git_repo != '' and config.git_proj_branch != ''
 
     if config.UE4EnginePath == '':
-        if config.clean:
-            error_exit('Unable to clean. No Engine Found!')
-
         if not can_pull_engine and engine_override == '':
             error_exit('Static engine placement required for non-git pulled engine. '
                        'You can specify a path using the -e param, or specify git configuration.')
@@ -167,7 +175,7 @@ def ensure_engine(config, engine_override, editor_running):
         error_exit('Specific engine path requested, but engine path for this project already exists?')
 
     # Before doing anything, make sure we have all build dependencies ready
-    if not config.clean and can_pull_engine:
+    if can_pull_engine:
         git_action = Git(config)
         git_action.branch_name = config.git_proj_branch
         git_action.repo_name = config.git_repo
@@ -185,7 +193,7 @@ def ensure_engine(config, engine_override, editor_running):
     if config.UE4EngineKeyName != '':
         register_project_engine(config, False)
 
-    if not editor_running:
+    if not config.editor_running:
         print_action('Checking engine dependencies up-to-date')
 
         def add_dep_exclude(path_name, args):

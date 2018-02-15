@@ -23,6 +23,7 @@ class Steamupload(Action):
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.set_live = kwargs['set_live'] if 'set_live' in kwargs else ''
+        self.build_name = kwargs['build_name'] if 'build_name' in kwargs else ''
 
         # Example: "ThirdParty\\Steam\\tools\\ContentBuilder\\builder\\steamcmd.exe"
         self.builder_exe_path = kwargs['builder_exe_path'] if 'builder_exe_path' in kwargs else ''
@@ -33,18 +34,26 @@ class Steamupload(Action):
         # Example: 'WindowsNoEditor\\Engine\\Extras\\Redist\\en-us\\steam_redist_installscript.vdf'
         self.install_script_rel_path = kwargs['install_script_rel_path'] if 'install_script_rel_path' in kwargs else ''
 
+    def verify(self):
+        if STEAMWORKS_PASS_ENV_VAR not in os.environ:
+            return 'Steamworks password not on environment!'
+        if STEAMWORKS_USER_ENV_VAR not in os.environ:
+            return 'Steamworks user not on environment!'
+        if self.build_name == '' or not os.path.isdir(os.path.join(self.config.builds_path, self.build_name)):
+            return 'Invalid build name supplied "{}". ' \
+                   'Check name and ensure package folder exists!'.format(self.build_name)
+        return ''
+
     def run(self):
         if self.config.clean:
             return True
-        if self.config.build_type != 'Package':
-            self.error = 'Steam Upload is only run on package builds!'
+
+        self.error = self.verify()
+        if self.error != '':
             return False
-        if STEAMWORKS_PASS_ENV_VAR not in os.environ:
-            self.error = 'Steamworks password not on environment!'
-            return False
-        if STEAMWORKS_USER_ENV_VAR not in os.environ:
-            self.error = 'Steamworks user not on environment!'
-            return False
+
+        if self.config.clean:
+            return True
 
         template_file_path = os.path.join(self.config.uproject_dir_path, self.steam_app_template)
 
@@ -54,7 +63,7 @@ class Steamupload(Action):
 
         self.create_app_build_script(template_file_path,
                                      auto_file_path,
-                                     '..\\..\\..\\..\\..\\builds\\WindowsNoEditor',
+                                     '..\\..\\..\\..\\..\\builds\\{}'.format(self.build_name),
                                      '{} Version {}'.format(self.config.uproject_name, self.config.version_str),
                                      self.set_live)
 
@@ -62,7 +71,7 @@ class Steamupload(Action):
             steam_app_id_name = 'steam_appid.txt'
             shutil.copy2(os.path.join(self.config.uproject_dir_path, steam_app_id_name),
                          os.path.join(self.config.builds_path,
-                                      'WindowsNoEditor\\steam_appid.txt'))
+                                      '{}\\steam_appid.txt'.format(self.build_name)))
             if self.install_script_rel_path != '':
                 shutil.copy2(os.path.join(self.config.uproject_dir_path, 'steam_redist_installscript.vdf'),
                              os.path.join(self.config.builds_path,

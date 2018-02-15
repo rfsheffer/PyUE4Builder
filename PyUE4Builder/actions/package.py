@@ -65,6 +65,10 @@ class Package(Action):
         if self.error != '':
             return False
 
+        if self.config.editor_running:
+            print_warning('You are packaging while also running the editor. '
+                          'This could fail because of memory contraints.')
+
         click.secho('Building for client version {}'.format(self.config.version_str))
 
         if self.config.clean:

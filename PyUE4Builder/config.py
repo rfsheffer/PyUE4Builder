@@ -5,14 +5,14 @@ import re
 from copy import deepcopy
 from pathlib import Path
 from winregistry import WinRegistry as Reg
-from utility.common import check_engine_dir_valid
+from utility.common import check_engine_dir_valid, is_editor_running
 
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 project_configurations = ['Shipping', 'Development', 'Debug']
-project_build_types = ['Game', 'Package']
+project_build_types = ['Game', 'Editor', 'Package']  # 'Game' and 'Editor' are the same. 'Game' is deprecated.
 
 # The names of the platforms the engine understands
 platform_types = ['Win32', 'Win64', "Linux", "Android", "IOS", "TVOS", "Mac", "PS4", "XboxOne", "Switch"]
@@ -26,11 +26,12 @@ class ProjectConfig(object):
     Common configuration and paths for unreal project automation processes
     Extra variables are injected via the build scripts
     """
-    def __init__(self, configuration="Development", build_type="Game", clean=False):
+    def __init__(self, configuration="Development", build_type="Editor", clean=False):
         # Build Switches
         self.configuration = configuration
         self.build_type = build_type
         self.clean = clean
+        self.editor_running = False
 
         # The loaded script json for the project. Keeping around for the build process.
         self.script = None
@@ -170,6 +171,9 @@ class ProjectConfig(object):
                 result = False
         else:
             result = check_engine_dir_valid(self.UE4EnginePath)
+
+        if result:
+            self.editor_running = is_editor_running(self.UE4EnginePath)
 
         # Set all absolute paths to unreal tools
         self.UE4GenProjFilesPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\GenerateProjectFiles.bat'))
