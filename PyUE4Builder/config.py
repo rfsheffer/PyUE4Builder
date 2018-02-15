@@ -12,13 +12,23 @@ __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 project_configurations = ['Shipping', 'Development', 'Debug']
-project_build_types = ['Game', 'Editor', 'Package']  # 'Game' and 'Editor' are the same. 'Game' is deprecated.
 
 # The names of the platforms the engine understands
 platform_types = ['Win32', 'Win64', "Linux", "Android", "IOS", "TVOS", "Mac", "PS4", "XboxOne", "Switch"]
 
 # The names prepended to output build folders for platforms
-platform_long_names = ["Windows", "Windows", "Linux", "Android", "IOS", "TVOS", "Mac", "PS4", "XboxOne", "Switch"]
+platform_long_names = {
+    'Win32': "Windows",
+    'Win64': "Windows",
+    "Linux": "Linux",
+    "Android": "Android",
+    "IOS": "IOS",
+    "TVOS": "TVOS",
+    "Mac": "Mac",
+    "PS4": "PS4",
+    "XboxOne": "XboxOne",
+    "Switch": "Switch"
+}
 
 
 class ProjectConfig(object):
@@ -26,11 +36,11 @@ class ProjectConfig(object):
     Common configuration and paths for unreal project automation processes
     Extra variables are injected via the build scripts
     """
-    def __init__(self, configuration="Development", build_type="Editor", clean=False):
+    def __init__(self, configuration="Development", platform='Win64', clean=False):
         # Build Switches
         self.configuration = configuration
-        self.build_type = build_type
         self.clean = clean
+        self.platform = platform
         self.editor_running = False
 
         # The loaded script json for the project. Keeping around for the build process.
@@ -56,6 +66,9 @@ class ProjectConfig(object):
         # NOTE: The exclude_samples already excludes all extraneous sample folders
         # These are paths relative of the engine folder, ex. Engine/Extras/3dsMaxScripts
         self.extra_dependency_excludes = []
+
+        # A list of engine tools which should be built before any build steps are taken
+        self.build_engine_tools = ['UnrealFrontend', 'ShaderCompileWorker', 'UnrealLightmass', 'CrashReportClient']
 
         # The path (relative or absolute) of the uproject file.
         self.project_path = ''
@@ -100,9 +113,6 @@ class ProjectConfig(object):
         """
         from utility.common import print_error
         if self.configuration not in project_configurations:
-            print_error('Invalid Configuration!')
-            return False
-        if self.build_type not in project_build_types:
             print_error('Invalid Configuration!')
             return False
 

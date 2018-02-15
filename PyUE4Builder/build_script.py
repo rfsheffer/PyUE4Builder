@@ -7,7 +7,7 @@ import json
 import importlib
 from copy import deepcopy
 from build_meta import BuildMeta
-from config import ProjectConfig, project_build_types, project_configurations
+from config import ProjectConfig, project_configurations, platform_types
 from utility.common import launch, print_title, print_action, error_exit, print_error, \
     get_visual_studio_version, register_project_engine, print_warning
 from actions.build import Build
@@ -24,15 +24,20 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
               default=False,
               show_default=True,
               help='Causes all actions to consider cleaning up their workspaces before executing their action.')
+@click.option('--platform', '-p',
+              type=click.Choice(platform_types),
+              default='Win64',
+              show_default=True,
+              help="Specifies the platform to build for. Defaults to Win64.")
 @click.option('--build', '-b',
               default='',
               show_default=True,
-              help="Which build steps defined in the build script to execute?")
+              help="If set, specifies build steps to run and nothing more. Basic engine tools will not be built.")
 @click.option('--buildtype', '-t',
-              type=click.Choice(project_build_types),
+              type=click.STRING,
               default='Editor',
               show_default=True,
-              help="(Deprecated, use 'build' option) Which type of build are you trying to create? Editor OR Package?")
+              help="Which type of build are you trying to create? Editor OR Package?")
 @click.option('--configuration', '-c',
               type=click.Choice(project_configurations),
               default='Development',
@@ -46,14 +51,15 @@ __credits__ = ["Ryan Sheffer", "VREAL"]
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, build, clean):
+def build_script(engine, script, configuration, buildtype, build, platform, clean):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
     :param script: The Project Script which defines the projects paths, build steps, and extra information.
     :param configuration: Build configuration, e.g. Shipping
-    :param buildtype: Which type of build are you trying to create? Game+Editor OR Package?
+    :param buildtype: Which type of build are you trying to create? Editor OR Package?
     :param build: Which build steps to execute?
+    :param platform: Which platform to build for?
     :param clean: Causes all actions to consider cleaning up their workspaces before executing their action.
     """
     # Fixup for old build type 'Game'.
@@ -71,7 +77,7 @@ def build_script(engine, script, configuration, buildtype, build, clean):
     with open(script, 'r') as fp:
         script_json = json.load(fp)
 
-    config = ProjectConfig(configuration, buildtype, clean)
+    config = ProjectConfig(configuration, platform, clean)
     if not config.load_configuration(script_json, engine, False):
         error_exit('Failed to load configuration. See errors above.')
 
@@ -85,51 +91,64 @@ def build_script(engine, script, configuration, buildtype, build, clean):
     ensure_engine(config, engine)
     click.secho('\nProject File Path: {}\nEngine Path: {}'.format(config.uproject_dir_path, config.UE4EnginePath))
 
-    # Build UE4 Engine and Prereqs that might've gotten cleaned
-    if not config.editor_running:
-        clean_revert = config.clean
-        if config.build_type == "Package":
-            # In package build don't bother cleaning editor tools
-            config.clean = False
-        tools_to_build = ['UnrealFrontend', 'ShaderCompileWorker', 'UnrealLightmass', 'CrashReportClient', 'UE4Editor']
-        if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
-            tools_to_build.insert(0, 'UnrealHeaderTool')
-        for tool_name in tools_to_build:
-            b = Build(config, build_name=tool_name)
-            if not b.run():
-                error_exit(b.error)
-        config.clean = clean_revert
-    else:
-        print_warning('Skipping engine and tools build because engine is running!')
+    # Ensure the unreal header tool exists. It is important for all Unreal projects
+    if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
+        b = Build(config, build_name='UnrealHeaderTool')
+        if not b.run():
+            error_exit(b.error)
 
-    run_build_steps(config, build_meta, 'pre_build_steps')
+    # Build required engine tools
+    clean_revert = config.clean
+    if buildtype == "Package":
+        config.clean = False  # Don't clean if packaging, waste of time
+    for tool_name in config.build_engine_tools:
+        b = Build(config, build_name=tool_name)
+        if not b.run():
+            error_exit(b.error)
+    config.clean = clean_revert
 
+    # If a specific set of steps if being requested, only build those
     if build != '':
-        run_build_steps(config, build_meta, build)
-    elif config.build_type == "Editor":
-        if config.editor_running:
-            print_warning('Cannot build the Editor while the editor is running!')
-            click.pause()
-            sys.exit(1)
-
-        if 'game_editor_steps' in config.script:
-            run_build_steps(config, build_meta, 'game_editor_steps')
-        elif 'editor_steps' in config.script:
-            run_build_steps(config, build_meta, 'editor_steps')
-        else:
-            b = Build(config, build_name='Editor', is_game_project=True)
+        run_build_steps(config, build_meta, build, True)
+    else:
+        # Ensure engine is built
+        if not config.editor_running:
+            clean_revert = config.clean
+            if buildtype == "Package":
+                config.clean = False  # Don't clean if packaging, waste of time
+            b = Build(config, build_name='UE4Editor')
             if not b.run():
                 error_exit(b.error)
-
-    elif config.build_type == "Package":
-        if 'package_steps' in config.script:
-            run_build_steps(config, build_meta, 'package_steps')
+            config.clean = clean_revert
         else:
-            package = Package(config)
-            if not package.run():
-                error_exit(package.error)
+            print_warning('Skipping engine build because engine is running!')
 
-    run_build_steps(config, build_meta, 'post_build_steps')
+        run_build_steps(config, build_meta, 'pre_build_steps')
+
+        if buildtype == "Editor":
+            if config.editor_running:
+                print_warning('Cannot build the Editor while the editor is running!')
+                click.pause()
+                sys.exit(1)
+
+            if 'game_editor_steps' in config.script:
+                run_build_steps(config, build_meta, 'game_editor_steps')
+            elif 'editor_steps' in config.script:
+                run_build_steps(config, build_meta, 'editor_steps')
+            else:
+                b = Build(config, build_name='{}Editor'.format(config.uproject_name))
+                if not b.run():
+                    error_exit(b.error)
+
+        elif buildtype == "Package":
+            if 'package_steps' in config.script:
+                run_build_steps(config, build_meta, 'package_steps')
+            else:
+                package = Package(config)
+                if not package.run():
+                    error_exit(package.error)
+
+        run_build_steps(config, build_meta, 'post_build_steps')
 
     build_meta.save_meta()
     print_action('SUCCESS!')

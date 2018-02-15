@@ -81,7 +81,7 @@ class Pak(Action):
                     '-encryptionini',
                     '-enginedir={}'.format(self.config.UE4EnginePath),
                     '-projectdir={}'.format(self.config.uproject_dir_path),
-                    '-platform=Win64',
+                    '-platform={}'.format(self.config.platform),
                     '-UTF8Output',
                     '-multiprocess']
 

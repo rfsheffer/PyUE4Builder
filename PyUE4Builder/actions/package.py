@@ -2,6 +2,7 @@
 
 from actions.action import Action
 from utility.common import launch, print_action, print_warning
+from config import platform_long_names
 import click
 import shutil
 import os
@@ -19,7 +20,7 @@ class Package(Action):
     """
 
     # Other relative to project paths
-    build_blacklist_dir = 'Build\\Win64'
+    build_blacklist_dir = 'Build\\{0}'  # Param: Platform
 
     # Constants
     blacklist_file_name = 'PakBlacklist-{0}.txt'  # Param: Build name
@@ -33,6 +34,7 @@ class Package(Action):
         self.no_debug_info = kwargs['no_debug_info'] if 'no_debug_info' in kwargs else False
         self.full_rebuild = kwargs['full_rebuild'] if 'full_rebuild' in kwargs else False
         self.no_editor_content = kwargs['no_editor_content'] if 'no_editor_content' in kwargs else False
+        self.no_compile_editor = kwargs['no_compile_editor'] if 'no_compile_editor' in kwargs else True
         self.ignore_cook_errors = kwargs['ignore_cook_errors'] if 'ignore_cook_errors' in kwargs else False
         self.use_debug_editor_cmd = kwargs['use_debug_editor_cmd'] if 'use_debug_editor_cmd' in kwargs else False
         self.build_type = kwargs['build_type'] if 'build_type' in kwargs else ''
@@ -82,37 +84,53 @@ class Package(Action):
                     os.unlink(path)
 
             if self.build_type == 'client':
-                shutil.rmtree(os.path.join(self.config.builds_path, 'WindowsClient'), onerror=on_rm_error)
+                shutil.rmtree(
+                    os.path.join(self.config.builds_path,
+                                 '{}Client'.format(platform_long_names[self.config.platform])),
+                    onerror=on_rm_error)
             elif self.build_type == 'server':
-                shutil.rmtree(os.path.join(self.config.builds_path, 'WindowsServer'), onerror=on_rm_error)
+                shutil.rmtree(
+                    os.path.join(self.config.builds_path,
+                                 '{}Server'.format(platform_long_names[self.config.platform])),
+                    onerror=on_rm_error)
             else:
-                shutil.rmtree(os.path.join(self.config.builds_path, 'WindowsNoEditor'), onerror=on_rm_error)
+                shutil.rmtree(
+                    os.path.join(self.config.builds_path,
+                                 '{}{}'.format(platform_long_names[self.config.platform],
+                                               'NoEditor' if self.no_compile_editor else '')),
+                    onerror=on_rm_error)
 
         cap_build_name = self.config.uproject_name.title()
         print_action('Building {} Build'.format(cap_build_name))
 
         build_blacklist_file_path = os.path.join(self.config.uproject_dir_path,
-                                                 self.build_blacklist_dir,
+                                                 self.build_blacklist_dir.format(self.config.platform),
                                                  self.blacklist_file_name.format(self.config.configuration))
         if self.content_black_list != '':
             print_action('Setting up content blacklist for configuration {}'.format(self.config.configuration))
             if os.path.isfile(build_blacklist_file_path):
                 os.unlink(build_blacklist_file_path)
-            os.makedirs(os.path.join(self.config.uproject_dir_path, self.build_blacklist_dir), exist_ok=True)
+            os.makedirs(os.path.join(self.config.uproject_dir_path,
+                                     self.build_blacklist_dir.format(self.config.platform)), exist_ok=True)
             shutil.copyfile(os.path.join(self.config.uproject_dir_path, self.content_black_list),
                             build_blacklist_file_path)
 
         cmd_args = ['-ScriptsForProject={}'.format(self.config.uproject_file_path),
-                    'BuildCookRun', '-nocompileeditor', '-NoHotReload', '-nop4',
+                    'BuildCookRun', '-NoHotReload', '-nop4',
                     '-project={}'.format(self.config.uproject_file_path),
                     '-archivedirectory={}'.format(self.config.builds_path),
                     '-clientconfig={}'.format(self.config.configuration),
                     '-serverconfig={}'.format(self.config.configuration),
                     '-ue4exe={}'.format('UE4Editor-Win64-Debug-Cmd.exe' if self.use_debug_editor_cmd else
                                         'UE4Editor-Cmd.exe'),
-                    '-prereqs', '-targetplatform=Win64', '-platform=Win64',
-                    '-servertargetplatform=Win64', '-serverplatform=Win64',
+                    '-prereqs', '-targetplatform={}'.format(self.config.platform),
+                    '-platform={}'.format(self.config.platform),
+                    '-servertargetplatform={}'.format(self.config.platform),
+                    '-serverplatform={}'.format(self.config.platform),
                     '-CrashReporter', '-utf8output']
+
+        if self.no_compile_editor:
+            cmd_args.append('-nocompileeditor')
 
         if self.build:
             cmd_args.append('-build')
