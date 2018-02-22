@@ -50,10 +50,6 @@ class Copy(Action):
         return ''
 
     def run(self):
-        self.error = self.verify()
-        if self.error != '':
-            return False
-
         for item in self.copy_items:
             with contextlib.suppress(FileNotFoundError):
                 os.unlink(item[1])

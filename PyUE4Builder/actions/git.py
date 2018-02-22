@@ -40,10 +40,6 @@ class Git(Action):
         return ''
 
     def run(self):
-        self.error = self.verify()
-        if self.error != '':
-            return False
-
         # First make sure we actually have git credentials
         ssh_path = os.path.join(os.environ['USERPROFILE'], '.ssh')
         if not os.path.exists(ssh_path) and self.rsa_path != '':

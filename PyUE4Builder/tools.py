@@ -26,7 +26,11 @@ def tools(config: ProjectConfig, script):
         error_exit('No build script defined! Use the -s arg')
 
     with open(script, 'r') as fp:
-        script_json = json.load(fp)
+        try:
+            script_json = json.load(fp)
+        except Exception as jsonError:
+            error_exit('Build Script Syntax Error:\n{}'.format(jsonError))
+            return
         if not config.load_configuration(script_json, ensure_engine=True):
             error_exit('Invalid Script file!')
 

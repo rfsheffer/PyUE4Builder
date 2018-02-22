@@ -84,7 +84,7 @@ def print_warning(msg):
     Print an error message to console
     :param msg: The error message to print
     """
-    click.secho('\n{0}\n'.format(msg), bg='yellow', fg='black')
+    click.secho('\n{0}\n'.format(msg), bg='yellow', fg='white')
 
 
 def print_error(msg):

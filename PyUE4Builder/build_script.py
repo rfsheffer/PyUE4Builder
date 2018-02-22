@@ -75,9 +75,13 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
         error_exit('No build script defined! Use the -s arg')
 
     with open(script, 'r') as fp:
-        script_json = json.load(fp)
+        try:
+            script_json = json.load(fp)
+        except Exception as jsonError:
+            error_exit('Build Script Syntax Error:\n{}'.format(jsonError))
+            return
 
-    config = ProjectConfig(configuration, platform, clean)
+    config = ProjectConfig(configuration, platform, False, clean)
     if not config.load_configuration(script_json, engine, False):
         error_exit('Failed to load configuration. See errors above.')
 
@@ -182,8 +186,16 @@ def ensure_engine(config, engine_override):
                 config.setup_engine_paths(result)
             else:
                 # Find an ideal location to put the engine
-                engine_path = os.path.abspath(os.path.join(config.uproject_dir_path,
-                                                           '..\\UnrealEngine_{}'.format(config.uproject_name)))
+                if len(config.engine_path_name) == 0:
+                    # Put the engine one directory down from the uproject
+                    engine_path = os.path.abspath(os.path.join(config.uproject_dir_path,
+                                                               '..\\UnrealEngine_{}'.format(config.uproject_name)))
+                else:
+                    if os.path.isabs(config.engine_path_name):
+                        engine_path = config.engine_path_name
+                    else:
+                        engine_path = os.path.normpath(os.path.join(config.uproject_dir_path, config.engine_path_name))
+
                 if not os.path.exists(engine_path):
                     try:
                         os.makedirs(engine_path)
@@ -277,9 +289,20 @@ def run_build_steps(config: ProjectConfig, build_meta: BuildMeta, steps_name, co
             # Run the action
             # We deep copy the configuration so it cannot be tampered with from inside the action.
             b = action_class(deepcopy(config), **kwargs)
+            verify_error = b.verify()
+            if verify_error != '':
+                if "allow_failure" in step and step["allow_failure"] is True:
+                    print_warning(verify_error)
+                    print_warning('Verification of this action failed. Skipping because of allow_failure flag.')
+                    return
+                else:
+                    error_exit(verify_error)
+
             if not b.run():
                 if "allow_failure" in step and step["allow_failure"] is True:
                     print_warning(b.error)
+                    print_warning('Running of this action failed. Skipping because of allow_failure flag.')
+                    return
                 else:
                     error_exit(b.error)
 

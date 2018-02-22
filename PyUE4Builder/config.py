@@ -36,12 +36,13 @@ class ProjectConfig(object):
     Common configuration and paths for unreal project automation processes
     Extra variables are injected via the build scripts
     """
-    def __init__(self, configuration="Development", platform='Win64', clean=False):
+    def __init__(self, configuration="Development", platform='Win64', debug=False, clean=False):
         # Build Switches
         self.configuration = configuration
         self.clean = clean
         self.platform = platform
         self.editor_running = False
+        self.debug = debug
 
         # The loaded script json for the project. Keeping around for the build process.
         self.script = None
@@ -159,7 +160,7 @@ class ProjectConfig(object):
 
         result = True
         # Initially do the obvious search, one path back from the project directory
-        self.UE4EnginePath = os.path.abspath(os.path.join(self.uproject_dir_path, '..\\', self.engine_path_name))
+        self.UE4EnginePath = os.path.abspath(os.path.join(self.uproject_dir_path, self.engine_path_name))
         if custom_engine_path != '':
             self.UE4EnginePath = custom_engine_path
         if self.UE4EngineKeyName != '' and not os.path.isdir(self.UE4EnginePath):

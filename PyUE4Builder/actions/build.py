@@ -27,10 +27,6 @@ class Build(Action):
         return ''
 
     def run(self):
-        self.error = self.verify()
-        if self.error != '':
-            return False
-
         # If the build starts with the project name, we know this is a game project being built
         is_game_project = self.build_name.startswith(self.config.uproject_name)
 

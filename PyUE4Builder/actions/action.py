@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from utility.common import print_warning
+
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
 __credits__ = ["Ryan Sheffer", "VREAL"]
@@ -17,6 +19,37 @@ class Action(object):
         del kwargs
         self.config = config
         self.error = ''
+        self.warnings = []
+
+    @staticmethod
+    def get_arg_docs():
+        """
+        Return documentation of the arguments this action takes
+        :return: Documentation dictionary, argument=key, documentation=value
+        """
+        return {
+        }
+
+    def verify(self):
+        """
+        Called to verify if the arguments passed to this action are enough to
+        complete the action in some meaningful way.
+        :return: empty string if action can be completed, string describing problem if not
+        """
+        return ''
 
     def run(self):
+        """
+        The actions execution.
+        An error message is stored in self.error if execution fails.
+        :return: True if execution completed successfully. False if not.
+        """
         return False
+
+    def warning(self, msg):
+        """
+        Add a warning to output from this action. Prints the warning to screen and saves it for later summary.
+        :param msg: The warning message
+        """
+        self.warnings.append(msg)
+        print_warning(msg)

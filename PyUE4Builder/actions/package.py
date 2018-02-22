@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 from actions.action import Action
-from utility.common import launch, print_action, print_warning
+from utility.common import launch, print_action
 from config import platform_long_names
-import click
 import shutil
 import os
 import stat
@@ -36,9 +35,10 @@ class Package(Action):
         self.no_editor_content = kwargs['no_editor_content'] if 'no_editor_content' in kwargs else False
         self.no_compile_editor = kwargs['no_compile_editor'] if 'no_compile_editor' in kwargs else True
         self.ignore_cook_errors = kwargs['ignore_cook_errors'] if 'ignore_cook_errors' in kwargs else False
-        self.use_debug_editor_cmd = kwargs['use_debug_editor_cmd'] if 'use_debug_editor_cmd' in kwargs else False
         self.build_type = kwargs['build_type'] if 'build_type' in kwargs else ''
         self.maps = kwargs['maps'] if 'maps' in kwargs else []
+        self.cook_dirs = kwargs['cook_dirs'] if 'cook_dirs' in kwargs else []
+        self.cook_output_dir = kwargs['cook_output_dir'] if 'cook_output_dir' in kwargs else ''
 
         # Control the pipeline
         self.build = kwargs['build'] if 'build' in kwargs else True
@@ -50,39 +50,47 @@ class Package(Action):
         # Argument to specify a content blacklist to use with this packaging.
         self.content_black_list = kwargs['content_black_list'] if 'content_black_list' in kwargs else ''
 
+    @staticmethod
+    def get_arg_docs():
+        return {
+            'pak_assets': 'Should all cooked assets be packaged into a single .pak file or left loose?',
+            'nativize_assets': 'Should blueprint script assemblies be converted into c++ equivalent?',
+        }
+
     def verify(self):
         if not self.config.check_environment():
             return 'Environment is not ready for building or packaging!'
 
         valid_build_types = ['standalone', 'client', 'server']
         if self.build_type not in valid_build_types:
-            print_warning('Unrecognized build type ({}) for package. Defaulting to "standalone".\n'
-                          'Valid types={}'.format(self.build_type, valid_build_types))
+            self.warning('Unrecognized build type ({}) for package. Defaulting to "standalone".\n'
+                         'Valid types={}'.format(self.build_type, valid_build_types))
             self.build_type = 'standalone'
+
+        for dir_i in range(0, len(self.cook_dirs)):
+            self.cook_dirs[dir_i] = os.path.join(self.config.uproject_dir_path, self.cook_dirs[dir_i])
+            if not os.path.isdir(self.cook_dirs[dir_i]):
+                return '{} invalid cook dir!'.format(self.cook_dirs[dir_i])
 
         return ''
 
     def run(self):
-        self.error = self.verify()
-        if self.error != '':
-            return False
-
         if self.config.editor_running:
-            print_warning('You are packaging while also running the editor. '
-                          'This could fail because of memory contraints.')
+            self.warning('You are packaging while also running the editor. '
+                         'This could fail because of memory contraints.')
 
-        click.secho('Building for client version {}'.format(self.config.version_str))
+        # click.secho('Building for client version {}'.format(self.config.version_str))
+
+        def on_rm_error(func, path, exc_info):
+            # path contains the path of the file that couldn't be removed
+            # let's just assume that it's read-only and unlink it.
+            del func  # Unused
+            if exc_info[0] is not FileNotFoundError:
+                os.chmod(path, stat.S_IWRITE)
+                os.unlink(path)
 
         if self.config.clean:
             # Kill the build directories
-            def on_rm_error(func, path, exc_info):
-                # path contains the path of the file that couldn't be removed
-                # let's just assume that it's read-only and unlink it.
-                del func  # Unused
-                if exc_info[0] is not FileNotFoundError:
-                    os.chmod(path, stat.S_IWRITE)
-                    os.unlink(path)
-
             if self.build_type == 'client':
                 shutil.rmtree(
                     os.path.join(self.config.builds_path,
@@ -100,8 +108,8 @@ class Package(Action):
                                                'NoEditor' if self.no_compile_editor else '')),
                     onerror=on_rm_error)
 
-        cap_build_name = self.config.uproject_name.title()
-        print_action('Building {} Build'.format(cap_build_name))
+        # cap_build_name = self.config.uproject_name.title()
+        # print_action('Building {} Build'.format(cap_build_name))
 
         build_blacklist_file_path = os.path.join(self.config.uproject_dir_path,
                                                  self.build_blacklist_dir.format(self.config.platform),
@@ -121,7 +129,7 @@ class Package(Action):
                     '-archivedirectory={}'.format(self.config.builds_path),
                     '-clientconfig={}'.format(self.config.configuration),
                     '-serverconfig={}'.format(self.config.configuration),
-                    '-ue4exe={}'.format('UE4Editor-Win64-Debug-Cmd.exe' if self.use_debug_editor_cmd else
+                    '-ue4exe={}'.format('UE4Editor-Win64-Debug-Cmd.exe' if self.config.debug else
                                         'UE4Editor-Cmd.exe'),
                     '-prereqs', '-targetplatform={}'.format(self.config.platform),
                     '-platform={}'.format(self.config.platform),
@@ -161,17 +169,30 @@ class Package(Action):
         if self.ignore_cook_errors:
             cmd_args.append('-IgnoreCookErrors')
 
+        if len(self.cook_output_dir) > 0:
+            cmd_args.append('-CookOutputDir={}'.format(os.path.join(self.config.uproject_dir_path,
+                                                                    self.cook_output_dir)))
+
         if len(self.maps) > 0:
             cmd_args.append('-map={}'.format('+'.join(self.maps)))
 
-        if self.config.clean or self.full_rebuild:
-            cmd_args.append('-clean')
-        else:
+        if len(self.cook_dirs) > 0:
+            cmd_args.append('-cookdir={}'.format('+'.join(self.cook_dirs)))
+
+        # TODO: determine engine bug or issue in this script. Fails if previous cooked content exists already.
+        if len(self.cook_output_dir) > 0:
+            # manual clean everytime because of bug...
+            shutil.rmtree(os.path.join(self.config.uproject_dir_path, self.cook_output_dir), onerror=on_rm_error)
             cmd_args.extend(['-iterate', '-iterativecooking'])
+        else:
+            if self.config.clean or self.full_rebuild:
+                cmd_args.append('-clean')
+            else:
+                cmd_args.extend(['-iterate', '-iterativecooking'])
 
         cmd_args.append('-compile')
 
-        print_action('Building, Cooking, and Packaging {} Build'.format(cap_build_name))
+        # print_action('Building, Cooking, and Packaging {} Build'.format(cap_build_name))
         if launch(self.config.UE4RunUATBatPath, cmd_args) != 0:
             self.error = 'Unable to build {}!'.format(self.config.uproject_name)
             return False

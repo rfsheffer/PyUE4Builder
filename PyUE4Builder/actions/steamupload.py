@@ -48,10 +48,6 @@ class Steamupload(Action):
         if self.config.clean:
             return True
 
-        self.error = self.verify()
-        if self.error != '':
-            return False
-
         if self.config.clean:
             return True
 
