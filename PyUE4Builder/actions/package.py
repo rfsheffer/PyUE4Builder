@@ -148,6 +148,8 @@ class Package(Action):
             cmd_args.append('-package')
         if self.stage:
             cmd_args.append('-stage')
+        else:
+            cmd_args.append('-skipstage')
         if self.archive:
             cmd_args.append('-archive')
 
