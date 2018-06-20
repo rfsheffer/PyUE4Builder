@@ -219,7 +219,7 @@ def ensure_engine(config, engine_override):
 
         cmd_args = []
         if config.exclude_samples:
-            for sample_pack in ['FeaturePacks', 'Samples', 'Templates']:
+            for sample_pack in ['FeaturePacks', 'Samples']:
                 add_dep_exclude(sample_pack, cmd_args)
         for extra_exclude in config.extra_dependency_excludes:
             add_dep_exclude(extra_exclude, cmd_args)
