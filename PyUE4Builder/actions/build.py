@@ -18,21 +18,44 @@ class Build(Action):
     """
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
-        self.build_name = kwargs["build_name"]
+        self.build_name = kwargs['build_name'] if 'build_name' in kwargs else ''
+        self.build_names = kwargs['build_names'] if 'build_names' in kwargs else ''
         self.force_clean = kwargs["force_clean"] if "force_clean" in kwargs else False
 
+    @staticmethod
+    def get_arg_docs():
+        return {
+            'build_name': 'The name of the project to build.',
+            'build_names': 'Same as build_name but accepts a list of builds',
+            'force_clean': 'Force this build/s to be cleaned, regardless of the global clean flag'
+        }
+
     def verify(self):
+        if len(self.build_name) == 0 and len(self.build_names) == 0:
+            return 'No valid build name supplied to this action!'
+
         if self.config.editor_running:
             return 'Cannot build "{}" because editor is running!'.format(self.build_name)
         return ''
 
     def run(self):
+        if len(self.build_name) != 0:
+            if not self.do_build(self.build_name):
+                return False
+
+        if len(self.build_names) != 0:
+            for build_name in self.build_names:
+                if not self.do_build(build_name):
+                    return False
+        return True
+
+    def do_build(self, build_name):
         # If the build starts with the project name, we know this is a game project being built
-        is_game_project = self.build_name.startswith(self.config.uproject_name)
+        is_game_project = build_name.startswith(self.config.uproject_name)
 
-        print_action('{} {}'.format('Building' if not self.config.clean else 'Cleaning', self.build_name))
+        print_action('{} {}'.format('Building' if not self.config.clean else 'Cleaning', build_name))
 
-        cmd_args = [self.build_name, self.config.platform, self.config.configuration]
+        cmd_args = [build_name, self.config.platform, self.config.configuration]
         if is_game_project:
             cmd_args.append(self.config.uproject_file_path)
         cmd_args += ['-NoHotReload', '-waitmutex']
@@ -45,12 +68,12 @@ class Build(Action):
                 self.clean_game_project_folder()
             else:
                 if launch(self.config.UE4CleanBatchPath, cmd_args) != 0:
-                    self.error = 'Failed to clean project {}'.format(self.build_name)
+                    self.error = 'Failed to clean project {}'.format(build_name)
                     return False
 
         # Do the actual build
         if launch(self.config.UE4BuildBatchPath, cmd_args) != 0:
-            self.error = 'Failed to build "{}"!'.format(self.build_name)
+            self.error = 'Failed to build "{}"!'.format(build_name)
             return False
         return True
 

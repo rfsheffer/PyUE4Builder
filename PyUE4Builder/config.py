@@ -69,7 +69,14 @@ class ProjectConfig(object):
         self.extra_dependency_excludes = []
 
         # A list of engine tools which should be built before any build steps are taken
-        self.build_engine_tools = ['UnrealFrontend', 'ShaderCompileWorker', 'UnrealLightmass', 'CrashReportClient']
+        self.build_engine_tools = ['UnrealFrontend',
+                                   'ShaderCompileWorker',
+                                   'UnrealLightmass',
+                                   'CrashReportClient',
+                                   'UE4Editor']
+
+        # Allows disabling the automatic building of engine tools to specify them yourself in your build script.
+        self.should_build_engine_tools = True
 
         # The path (relative or absolute) of the uproject file.
         self.project_path = ''
