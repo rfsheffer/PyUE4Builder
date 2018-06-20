@@ -113,18 +113,6 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
         if not steps.run():
             error_exit(steps.error)
     else:
-        # Ensure engine is built
-        if not config.editor_running:
-            clean_revert = config.clean
-            if buildtype == "Package":
-                config.clean = False  # Don't clean if packaging, waste of time
-            b = Build(config, build_name='UE4Editor')
-            if not b.run():
-                error_exit(b.error)
-            config.clean = clean_revert
-        else:
-            print_warning('Skipping engine build because engine is running!')
-
         if buildtype == "Editor":
             if config.editor_running:
                 print_warning('Cannot build the Editor while the editor is running!')
