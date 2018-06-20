@@ -10,7 +10,7 @@ from utility.common import launch, print_title, print_action, error_exit, print_
 from actions.build import Build
 from actions.package import Package
 from actions.git import Git
-from actions.runsteps import Runsteps
+from actions.buildsteps import Buildsteps
 
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
@@ -109,7 +109,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
 
     # If a specific set of steps if being requested, only build those
     if build != '':
-        steps = Runsteps(config, steps_name=build)
+        steps = Buildsteps(config, steps_name=build)
         if not steps.run():
             error_exit(steps.error)
     else:
@@ -132,11 +132,11 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
                 sys.exit(1)
 
             if 'game_editor_steps' in config.script:
-                steps = Runsteps(config, steps_name='game_editor_steps')
+                steps = Buildsteps(config, steps_name='game_editor_steps')
                 if not steps.run():
                     error_exit(steps.error)
             elif 'editor_steps' in config.script:
-                steps = Runsteps(config, steps_name='editor_steps')
+                steps = Buildsteps(config, steps_name='editor_steps')
                 if not steps.run():
                     error_exit(steps.error)
             else:
@@ -146,7 +146,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
 
         elif buildtype == "Package":
             if 'package_steps' in config.script:
-                steps = Runsteps(config, steps_name='package_steps')
+                steps = Buildsteps(config, steps_name='package_steps')
                 if not steps.run():
                     error_exit(steps.error)
             else:

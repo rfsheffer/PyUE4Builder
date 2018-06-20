@@ -11,7 +11,7 @@ __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 
-class Runsteps(Action):
+class Buildsteps(Action):
     """
     Run Steps Action
     An action designed to run a list of steps found within the build script
