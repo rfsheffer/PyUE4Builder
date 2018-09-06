@@ -133,6 +133,14 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
                     error_exit(b.error)
 
         elif buildtype == "Package":
+            # We need to build the editor before we can run any cook commands. This seems important for blueprints
+            # probably because it runs the engine and expects all of the native class RTTI to be up-to-date to be able
+            # to compile the blueprints. Usually you would be starting a package build from the editor, so it makes
+            # sense.
+            b = Build(config, build_name='{}Editor'.format(config.uproject_name))
+            if not b.run():
+                error_exit(b.error)
+
             if 'package_steps' in config.script:
                 steps = Buildsteps(config, steps_name='package_steps')
                 if not steps.run():
