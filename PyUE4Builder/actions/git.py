@@ -86,7 +86,7 @@ class Git(Action):
         else:
             with push_directory(output_dir):
                 print_action("Pulling from Git '{}' branch '{}'".format(self.repo_name, self.branch_name))
-                err = launch('git', ['pull'], silent=True)
+                err = launch('git', ['pull', 'origin', self.branch_name], silent=True)
                 if err != 0:
                     self.error = 'Git pull failed!'
                     return False
