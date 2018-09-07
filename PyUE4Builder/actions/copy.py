@@ -16,6 +16,7 @@ class Copy(Action):
     Copy Action
     An action designed to copy file/s as part of a build process.
     TODO: Setup wildcard like copying? Take advantage of a copy module with a lot of options.
+    TODO: Have many copying options, like many files in a folder to another folder. Whole dir trees, etc.
     """
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
@@ -60,9 +61,6 @@ class Copy(Action):
 
             if not os.path.isfile(item[0]):
                 return 'Copy item ({}) does not exist!'.format(item[0])
-
-            if os.path.isdir(item[1]):
-                item[1] = os.path.join(item[1], os.path.basename(item[0]))
         return ''
 
     def run(self):
