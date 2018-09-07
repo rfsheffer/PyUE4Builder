@@ -26,6 +26,7 @@ class Buildsteps(Action):
         self.steps_name = kwargs['steps_name'] if 'steps_name' in kwargs else ''
         self.push_meta = kwargs['push_meta'] if 'push_meta' in kwargs else {}
         self.complain_missing_step = kwargs['complain_missing_step'] if 'complain_missing_step' in kwargs else True
+        self.previous_meta = kwargs['build_meta'] if 'build_meta' in kwargs else None
 
     @staticmethod
     def get_arg_docs():
@@ -46,6 +47,11 @@ class Buildsteps(Action):
         base_build_meta = BuildMeta('project_build_meta')
         build_meta = deepcopy(base_build_meta)
 
+        # If this is a sub build steps, it continues the meta of the previous steps
+        if self.previous_meta is not None:
+            for k, v in self.previous_meta.__dict__.items():
+                setattr(build_meta, k, v)
+
         # Push steps meta
         for k, v in self.push_meta.items():
             setattr(build_meta, k, v)
@@ -55,7 +61,7 @@ class Buildsteps(Action):
             if "enabled" in step and step["enabled"] is False:
                 continue
 
-            print_action('Performing Undescribed step' if 'desc' not in step else step['desc'])
+            print_action('Performing un-described step' if 'desc' not in step else step['desc'])
 
             # Get the step class
             step_module = importlib.import_module(step['action']['module'])

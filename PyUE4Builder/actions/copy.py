@@ -20,17 +20,26 @@ class Copy(Action):
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.copy_items = kwargs['copy'] if 'copy' in kwargs else []
+        self.build_meta = kwargs['build_meta'] if 'build_meta' in kwargs else None
+
+    @staticmethod
+    def replace_chars(chars, replace, str_in):
+        for c in chars:
+            if c in str_in:
+                str_in = str_in.replace(c, replace)
+        return str_in
 
     @staticmethod
     def replace_path_sections(path, var_class):
-        re_exp = re.compile('{([0-9a-z_-]+)}', re.IGNORECASE)
+        re_exp = re.compile('({[0-9a-z_-]+})', re.IGNORECASE)
         splits = re_exp.split(path)
         path_out = path
         if len(splits):
             path_out = ''
             for split in splits:
-                if hasattr(var_class, split):
-                    path_out += getattr(var_class, split)
+                var_name = Copy.replace_chars(['{', '}'], '', split)
+                if hasattr(var_class, var_name):
+                    path_out += getattr(var_class, var_name)
                 else:
                     path_out += split
         return path_out
@@ -45,8 +54,15 @@ class Copy(Action):
             item[0] = self.replace_path_sections(item[0], self.config)
             item[1] = self.replace_path_sections(item[1], self.config)
 
+            if self.build_meta is not None:
+                item[0] = self.replace_path_sections(item[0], self.build_meta)
+                item[1] = self.replace_path_sections(item[1], self.build_meta)
+
             if not os.path.isfile(item[0]):
                 return 'Copy item ({}) does not exist!'.format(item[0])
+
+            if os.path.isdir(item[1]):
+                item[1] = os.path.join(item[1], os.path.basename(item[0]))
         return ''
 
     def run(self):
@@ -65,4 +81,4 @@ if __name__ == "__main__":
             self.HI2_there = "some\\cool\\path"
             self.three = "another\\cool\\path"
     print(Copy.replace_path_sections('hello\\{HI2_there}\\then\\there\\were\\{three}\\bla.exe', VarClassTest()))
-    print(Copy.replace_path_sections('hello\\then\\there\\were\\three.exe', VarClassTest()))
+    print(Copy.replace_path_sections('hello\\then\\there\\{not_found}\\three.exe', VarClassTest()))
