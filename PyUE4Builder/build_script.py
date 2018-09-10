@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import sys
 import os
 import click
 import json
 from config import ProjectConfig, project_configurations, platform_types
 from utility.common import launch, print_title, print_action, error_exit, print_error, \
-    get_visual_studio_version, register_project_engine, print_warning
+    get_visual_studio_version, register_project_engine
 from actions.build import Build
 from actions.package import Package
 from actions.git import Git
@@ -15,6 +14,8 @@ from actions.buildsteps import Buildsteps
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
 __credits__ = ["Ryan Sheffer", "VREAL"]
+
+is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
 
 
 @click.command()
@@ -70,18 +71,18 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
         return False
 
     if not os.path.isfile(script):
-        error_exit('No build script defined! Use the -s arg')
+        error_exit('No build script defined! Use the -s arg', not is_automated)
 
     with open(script, 'r') as fp:
         try:
             script_json = json.load(fp)
         except Exception as jsonError:
-            error_exit('Build Script Syntax Error:\n{}'.format(jsonError))
+            error_exit('Build Script Syntax Error:\n{}'.format(jsonError), not is_automated)
             return
 
     config = ProjectConfig(configuration, platform, False, clean)
     if not config.load_configuration(script_json, engine, False):
-        error_exit('Failed to load configuration. See errors above.')
+        error_exit('Failed to load configuration. See errors above.', not config.automated)
 
     print_title('Unreal Project Builder')
 
@@ -93,7 +94,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
         b = Build(config, build_name='UnrealHeaderTool')
         if not b.run():
-            error_exit(b.error)
+            error_exit(b.error, not config.automated)
 
     # Build required engine tools
     if config.should_build_engine_tools:
@@ -103,7 +104,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
 
         b = Build(config, build_names=config.build_engine_tools)
         if not b.run():
-            error_exit(b.error)
+            error_exit(b.error, not config.automated)
 
         config.clean = clean_revert
 
@@ -111,26 +112,24 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     if build != '':
         steps = Buildsteps(config, steps_name=build)
         if not steps.run():
-            error_exit(steps.error)
+            error_exit(steps.error, not config.automated)
     else:
         if buildtype == "Editor":
             if config.editor_running:
-                print_warning('Cannot build the Editor while the editor is running!')
-                click.pause()
-                sys.exit(1)
+                error_exit('Cannot build the Editor while the editor is running!', not config.automated)
 
             if 'game_editor_steps' in config.script:
                 steps = Buildsteps(config, steps_name='game_editor_steps')
                 if not steps.run():
-                    error_exit(steps.error)
+                    error_exit(steps.error, not config.automated)
             elif 'editor_steps' in config.script:
                 steps = Buildsteps(config, steps_name='editor_steps')
                 if not steps.run():
-                    error_exit(steps.error)
+                    error_exit(steps.error, not config.automated)
             else:
                 b = Build(config, build_name='{}Editor'.format(config.uproject_name))
                 if not b.run():
-                    error_exit(b.error)
+                    error_exit(b.error, not config.automated)
 
         elif buildtype == "Package":
             # We need to build the editor before we can run any cook commands. This seems important for blueprints
@@ -139,19 +138,20 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
             # sense.
             b = Build(config, build_name='{}Editor'.format(config.uproject_name))
             if not b.run():
-                error_exit(b.error)
+                error_exit(b.error, not config.automated)
 
             if 'package_steps' in config.script:
                 steps = Buildsteps(config, steps_name='package_steps')
                 if not steps.run():
-                    error_exit(steps.error)
+                    error_exit(steps.error, not config.automated)
             else:
                 package = Package(config)
                 if not package.run():
-                    error_exit(package.error)
+                    error_exit(package.error, not config.automated)
 
     print_action('SUCCESS!')
-    click.pause()
+    if not config.automated:
+        click.pause()
 
 
 def ensure_engine(config, engine_override):
@@ -165,11 +165,11 @@ def ensure_engine(config, engine_override):
     if config.UE4EnginePath == '':
         if not can_pull_engine and engine_override == '':
             error_exit('Static engine placement required for non-git pulled engine. '
-                       'You can specify a path using the -e param, or specify git configuration.')
+                       'You can specify a path using the -e param, or specify git configuration.', not config.automated)
 
         if engine_override != '':
             config.setup_engine_paths(os.path.abspath(engine_override))
-        else:
+        elif not config.automated:
             result = click.confirm('Would you like to specify the location of the engine install?', default=False)
             if result:
                 result = click.prompt('Where would you like to install the engine?')
@@ -177,7 +177,7 @@ def ensure_engine(config, engine_override):
                     try:
                         os.makedirs(result)
                     except Exception:
-                        error_exit('Unable to create engine directory! Tried @ {}'.format(result))
+                        error_exit('Unable to create engine directory! Tried @ {}'.format(result), not config.automated)
                 config.setup_engine_paths(result)
             else:
                 # Find an ideal location to put the engine
@@ -195,10 +195,15 @@ def ensure_engine(config, engine_override):
                     try:
                         os.makedirs(engine_path)
                     except Exception:
-                        error_exit('Unable to create engine directory! Tried @ {}'.format(engine_path))
+                        error_exit('Unable to create engine directory! Tried @ {}'.format(engine_path),
+                                   not config.automated)
                 config.setup_engine_paths(engine_path)
+        else:
+            error_exit('No engine available for automated case! Either fill out git info or supply engine directory',
+                       not config.automated)
     elif config.UE4EnginePath != engine_override and engine_override != '':
-        error_exit('Specific engine path requested, but engine path for this project already exists?')
+        error_exit('Specific engine path requested, but engine path for this project already exists?',
+                   not config.automated)
 
     # Before doing anything, make sure we have all build dependencies ready
     if can_pull_engine:
@@ -209,10 +214,10 @@ def ensure_engine(config, engine_override):
         git_action.disable_strict_hostkey_check = True
         git_action.force_repull = False
         if not git_action.run():
-            error_exit(git_action.error)
+            error_exit(git_action.error, not config.automated)
 
     if not config.setup_engine_paths(engine_override):
-        error_exit('Could not setup valid engine paths!')
+        error_exit('Could not setup valid engine paths!', not config.automated)
 
     # Register the engine (might do nothing if already registered)
     # If no key name, this is an un-keyed static engine.
@@ -233,7 +238,7 @@ def ensure_engine(config, engine_override):
             add_dep_exclude(extra_exclude, cmd_args)
 
         if launch(config.UE4GitDependenciesPath, cmd_args) != 0:
-            error_exit('Engine dependencies Failed to Sync!')
+            error_exit('Engine dependencies Failed to Sync!', not config.automated)
 
         if not os.path.isfile(config.UE4UBTPath):
             # The unreal build tool does not exist, we need to build it first
@@ -241,10 +246,10 @@ def ensure_engine(config, engine_override):
             # and builds it if not.
             print_action("Build tool doesn't exist yet, generating project and building...")
             if launch(config.UE4GenProjFilesPath, ['-2017'] if get_visual_studio_version() == 2017 else []) != 0:
-                error_exit('Failed to build UnrealBuildTool.exe!')
+                error_exit('Failed to build UnrealBuildTool.exe!', not config.automated)
 
 if __name__ == "__main__":
     try:
         build_script()
     except Exception as e:
-        error_exit('{}'.format(e))
+        error_exit('{}'.format(e), is_automated)

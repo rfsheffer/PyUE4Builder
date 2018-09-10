@@ -23,21 +23,21 @@ pass_config = click.make_pass_decorator(ProjectConfig, ensure=True)
 @pass_config
 def tools(config: ProjectConfig, script):
     if not os.path.isfile(script):
-        error_exit('No build script defined! Use the -s arg')
+        error_exit('No build script defined! Use the -s arg', not config.automated)
 
     with open(script, 'r') as fp:
         try:
             script_json = json.load(fp)
         except Exception as jsonError:
-            error_exit('Build Script Syntax Error:\n{}'.format(jsonError))
+            error_exit('Build Script Syntax Error:\n{}'.format(jsonError), not config.automated)
             return
         if not config.load_configuration(script_json, ensure_engine=True):
-            error_exit('Invalid Script file!')
+            error_exit('Invalid Script file!', not config.automated)
 
 
 @tools.command()
 @pass_config
-def genproj(config):
+def genproj(config: ProjectConfig):
     """ Generate project file """
     print_action('Generating Project Files')
 
@@ -47,12 +47,12 @@ def genproj(config):
     if get_visual_studio_version() == 2017:
         cmd_args.append('-2017')
     if launch(config.UE4UBTPath, cmd_args) != 0:
-        error_exit('Failed to generate project files, see errors...')
+        error_exit('Failed to generate project files, see errors...', not config.automated)
 
 
 @tools.command()
 @pass_config
-def genloc(config):
+def genloc(config: ProjectConfig):
     """ Generate localization """
     print_action('Generating Localization')
     cmd_args = [config.uproject_file_path,
@@ -60,9 +60,10 @@ def genloc(config):
                 '-config={}'.format(config.proj_localization_script),
                 '-log']
     if launch(config.UE4EditorPath, cmd_args) != 0:
-        error_exit('Failed to generate localization, see errors...')
+        error_exit('Failed to generate localization, see errors...', not config.automated)
 
-    click.pause()
+    if not config.automated:
+        click.pause()
 
 
 @tools.command()
@@ -126,7 +127,7 @@ def server(config, extra, umap):
                                    'builds\\WindowsServer\\{0}\\Binaries\\'
                                    'Win64\\{0}Server.exe'.format(config.uproject_name))
     if not os.path.isfile(server_exe_path):
-        error_exit('Server is not built!')
+        error_exit('Server is not built!', not config.automated)
 
     launch(server_exe_path, cmd_args, True, should_wait=False)
 
@@ -157,7 +158,7 @@ def client(config, extra, ip):
                                    'builds\\WindowsNoEditor\\{0}\\Binaries\\'
                                    'Win64\\{0}.exe'.format(config.uproject_name))
     if not os.path.isfile(client_exe_path):
-        error_exit('Client is not built!')
+        error_exit('Client is not built!', not config.automated)
 
     launch(client_exe_path, cmd_args, True, should_wait=False)
 
@@ -174,4 +175,4 @@ if __name__ == "__main__":
     try:
         tools()
     except Exception as e:
-        error_exit('{}'.format(e))
+        error_exit('{}'.format(e), False)

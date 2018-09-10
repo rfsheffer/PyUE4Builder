@@ -111,6 +111,10 @@ class ProjectConfig(object):
         self.UE4EditorPath = ''
         self.UE4VersionSelectorPath = ''
 
+        # An environment variable letting actions know this is automated and there is no
+        # physical user setting off this build
+        self.automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
+
     def load_configuration(self, script_json, custom_engine_path='', ensure_engine=True):
         """
         Load the configuration from a build script

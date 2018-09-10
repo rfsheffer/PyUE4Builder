@@ -40,22 +40,23 @@ class Git(Action):
         return ''
 
     def run(self):
-        # First make sure we actually have git credentials
-        ssh_path = os.path.join(os.environ['USERPROFILE'], '.ssh')
-        if not os.path.exists(ssh_path) and self.rsa_path != '':
-            rsa_file = os.path.join(self.config.uproject_dir_path, self.rsa_path)
-            if not os.path.isfile(rsa_file):
-                self.error = 'No git credentials exists at rsa_path! ' \
-                             'Check rsa_path is relative to the project path and exists.'
-                return False
-            os.mkdir(ssh_path)
-            shutil.copy2(rsa_file, ssh_path)
+        if not self.config.automated:
+            # First make sure we actually have git credentials
+            ssh_path = os.path.join(os.environ['USERPROFILE'], '.ssh')
+            if not os.path.exists(ssh_path) and self.rsa_path != '':
+                rsa_file = os.path.join(self.config.uproject_dir_path, self.rsa_path)
+                if not os.path.isfile(rsa_file):
+                    self.error = 'No git credentials exists at rsa_path! ' \
+                                 'Check rsa_path is relative to the project path and exists.'
+                    return False
+                os.mkdir(ssh_path)
+                shutil.copy2(rsa_file, ssh_path)
 
-        # To get around the annoying user prompt, lets just set github to be trusted, no key checking
-        if self.disable_strict_hostkey_check:
-            if not os.path.isfile(os.path.join(ssh_path, 'config')):
-                with open(os.path.join(ssh_path, 'config'), 'w') as fp:
-                    fp.write('Host github.com\nStrictHostKeyChecking no')
+            # To get around the annoying user prompt, lets just set github to be trusted, no key checking
+            if self.disable_strict_hostkey_check:
+                if not os.path.isfile(os.path.join(ssh_path, 'config')):
+                    with open(os.path.join(ssh_path, 'config'), 'w') as fp:
+                        fp.write('Host github.com\nStrictHostKeyChecking no')
 
         output_dir = os.path.join(self.config.uproject_dir_path, self.output_folder)
 
