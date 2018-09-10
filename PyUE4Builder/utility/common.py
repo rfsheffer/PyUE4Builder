@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
 import os
-import stat
 import winreg
-import shutil
 import click
 import sys
 import subprocess
@@ -95,9 +93,10 @@ def print_error(msg):
     click.secho('\n{0}\n'.format(msg), bg='red')
 
 
-def error_exit(msg):
+def error_exit(msg, should_pause):
     print_error(msg)
-    click.pause()
+    if should_pause:
+        click.pause()
     sys.exit(1)
 
 
