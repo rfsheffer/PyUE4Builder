@@ -86,6 +86,9 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
 
     print_title('Unreal Project Builder')
 
+    if config.automated:
+        click.secho('\nAutomated flag set!')
+
     # Ensure the engine exists and we can build
     ensure_engine(config, engine)
     click.secho('\nProject File Path: {}\nEngine Path: {}'.format(config.uproject_dir_path, config.UE4EnginePath))
