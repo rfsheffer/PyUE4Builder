@@ -36,7 +36,7 @@ class ProjectConfig(object):
     Common configuration and paths for unreal project automation processes
     Extra variables are injected via the build scripts
     """
-    def __init__(self, configuration="Development", platform='Win64', debug=False, clean=False):
+    def __init__(self, configuration="Development", platform='Win64', debug=False, clean=False, automated=False):
         # Build Switches
         self.configuration = configuration
         self.clean = clean
@@ -113,7 +113,7 @@ class ProjectConfig(object):
 
         # An environment variable letting actions know this is automated and there is no
         # physical user setting off this build
-        self.automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
+        self.automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1" or automated
 
     def load_configuration(self, script_json, custom_engine_path='', ensure_engine=True):
         """

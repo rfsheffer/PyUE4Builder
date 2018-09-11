@@ -19,6 +19,10 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
 
 
 @click.command()
+@click.option('--automated/--no-automated',
+              default=False,
+              show_default=True,
+              help='Is this build being run on a continuous integration server? The environment should be left alone.')
 @click.option('--clean/--no-clean',
               default=False,
               show_default=True,
@@ -50,7 +54,7 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, build, platform, clean):
+def build_script(engine, script, configuration, buildtype, build, platform, clean, automated):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
@@ -60,10 +64,16 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     :param build: Which build steps to execute?
     :param platform: Which platform to build for?
     :param clean: Causes all actions to consider cleaning up their workspaces before executing their action.
+    :param automated: Configures the builder to recognize this build as being done by continuous integration and should
+                      not manipulate the system environment.
     """
     # Fixup for old build type 'Game'.
     if buildtype == 'Game':
         buildtype = 'Editor'
+
+    global is_automated
+    if automated:
+        is_automated = automated
 
     # Ensure Visual Studio is installed
     if get_visual_studio_version() not in [2015, 2017]:
@@ -80,7 +90,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
             error_exit('Build Script Syntax Error:\n{}'.format(jsonError), not is_automated)
             return
 
-    config = ProjectConfig(configuration, platform, False, clean)
+    config = ProjectConfig(configuration, platform, False, clean, automated)
     if not config.load_configuration(script_json, engine, False):
         error_exit('Failed to load configuration. See errors above.', not config.automated)
 
@@ -224,7 +234,7 @@ def ensure_engine(config, engine_override):
 
     # Register the engine (might do nothing if already registered)
     # If no key name, this is an un-keyed static engine.
-    if config.UE4EngineKeyName != '':
+    if config.UE4EngineKeyName != '' and not config.automated:
         register_project_engine(config, False)
 
     if not config.editor_running:
