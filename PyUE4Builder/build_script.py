@@ -265,4 +265,4 @@ if __name__ == "__main__":
     try:
         build_script()
     except Exception as e:
-        error_exit('{}'.format(e), is_automated)
+        error_exit('{}'.format(e), not is_automated)

@@ -61,6 +61,56 @@ class Buildsteps(Action):
             if "enabled" in step and step["enabled"] is False:
                 continue
 
+            # Check step conditions
+            # comma separated conditions using 'not' for negation.
+            # Conditions are vars found in meta or config, ex: "not automated, clean"
+            conditions_passed = True
+            cond_not_met = ''
+            if "condition" in step:
+                try:
+                    cond_splits = step["condition"].split(' ')
+                    cur_index = 0
+                    while cur_index < len(cond_splits):
+                        cond = True
+                        if cond_splits[cur_index] == 'not':
+                            cur_index += 1
+                            cond_to_check = cond_splits[cur_index]
+                            cond = False
+                        else:
+                            cond_to_check = cond_splits[cur_index]
+                        cond_to_check = cond_to_check.replace(',', '')
+
+                        # Get the attribute from either meta or config
+                        attr_to_test = None
+                        if hasattr(build_meta, cond_to_check):
+                            attr_to_test = getattr(build_meta, cond_to_check)
+                            if type(attr_to_test) is not bool:
+                                attr_to_test = None
+                        elif hasattr(self.config, cond_to_check):
+                            attr_to_test = getattr(self.config, cond_to_check)
+                            if type(attr_to_test) is not bool:
+                                attr_to_test = None
+
+                        # Test the attribute against our condition
+                        if attr_to_test is not None:
+                            if cond != attr_to_test:
+                                conditions_passed = False
+                                if cond:
+                                    cond_not_met = cond_to_check
+                                else:
+                                    cond_not_met = 'not {0}'.format(cond_to_check)
+                                break
+
+                        cur_index += 1
+                except Exception as e:
+                    self.error = 'Invalid conditional statement!'
+                    return False
+
+            if not conditions_passed:
+                step_name = 'unknown' if 'desc' not in step else step['desc']
+                self.warning('Skipping ({0}) step because condition ({1}) was not met'.format(step_name, cond_not_met))
+                continue
+
             print_action('Performing un-described step' if 'desc' not in step else step['desc'])
 
             # Get the step class
