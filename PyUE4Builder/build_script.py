@@ -19,10 +19,17 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
 
 
 @click.command()
+@click.option('--buildexplicit/--no-buildexplicit',
+              default=False,
+              show_default=True,
+              help='Should the build system only build what is requested? This prevents convienience cases like '
+                   'the package build building the editor before trying to package. By setting this to true, it is '
+                   'expected that the user has setup the proper state before building.')
 @click.option('--automated/--no-automated',
               default=False,
               show_default=True,
-              help='Is this build being run on a continuous integration server? The environment should be left alone.')
+              help='Is this build being run on a continuous integration server? '
+                   'The global environment should be left alone.')
 @click.option('--clean/--no-clean',
               default=False,
               show_default=True,
@@ -54,7 +61,7 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, build, platform, clean, automated):
+def build_script(engine, script, configuration, buildtype, build, platform, clean, automated, buildexplicit):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
@@ -66,6 +73,9 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     :param clean: Causes all actions to consider cleaning up their workspaces before executing their action.
     :param automated: Configures the builder to recognize this build as being done by continuous integration and should
                       not manipulate the system environment.
+    :param buildexplicit: Should the build system only build what is requested? This prevents convienience cases like
+                          the package build building the editor before trying to package. By setting this to true, it is
+                          expected that the user has setup the proper state before building.
     """
     # Fixup for old build type 'Game'.
     if buildtype == 'Game':
@@ -91,7 +101,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
             return
 
     config = ProjectConfig(configuration, platform, False, clean, automated)
-    if not config.load_configuration(script_json, engine, False):
+    if not config.load_configuration(script_json, engine, buildexplicit):
         error_exit('Failed to load configuration. See errors above.', not config.automated)
 
     print_title('Unreal Project Builder')
@@ -100,17 +110,19 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
         click.secho('\nAutomated flag set!')
 
     # Ensure the engine exists and we can build
-    ensure_engine(config, engine)
+    if not buildexplicit:
+        ensure_engine(config, engine)
     click.secho('\nProject File Path: {}\nEngine Path: {}'.format(config.uproject_dir_path, config.UE4EnginePath))
 
     # Ensure the unreal header tool exists. It is important for all Unreal projects
-    if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
-        b = Build(config, build_name='UnrealHeaderTool')
-        if not b.run():
-            error_exit(b.error, not config.automated)
+    if not buildexplicit:
+        if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
+            b = Build(config, build_name='UnrealHeaderTool')
+            if not b.run():
+                error_exit(b.error, not config.automated)
 
     # Build required engine tools
-    if config.should_build_engine_tools:
+    if config.should_build_engine_tools and not buildexplicit:
         clean_revert = config.clean
         if buildtype == "Package":
             config.clean = False  # Don't clean if packaging, waste of time
@@ -148,10 +160,11 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
             # We need to build the editor before we can run any cook commands. This seems important for blueprints
             # probably because it runs the engine and expects all of the native class RTTI to be up-to-date to be able
             # to compile the blueprints. Usually you would be starting a package build from the editor, so it makes
-            # sense.
-            b = Build(config, build_name='{}Editor'.format(config.uproject_name))
-            if not b.run():
-                error_exit(b.error, not config.automated)
+            # sense. Explicit builds ignore this however.
+            if not buildexplicit:
+                b = Build(config, build_name='{}Editor'.format(config.uproject_name))
+                if not b.run():
+                    error_exit(b.error, not config.automated)
 
             if 'package_steps' in config.script:
                 steps = Buildsteps(config, steps_name='package_steps')
