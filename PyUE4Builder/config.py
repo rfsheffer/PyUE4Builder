@@ -86,7 +86,7 @@ class ProjectConfig(object):
         self.version_str = '1.0.0.0'
 
         # Relative path from the uproject directly to the engine.
-        self.engine_path_name = ''
+        self.engine_path_name = '..'
 
         # Git Config
         self.git_proj_branch = ''  # The branch to use in git repo

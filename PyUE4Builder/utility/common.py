@@ -206,20 +206,38 @@ def register_project_engine(config, prompt_path=True):
     :return: True on success
     """
     reg = Reg()
-    try:
-        registered_engines = reg.read_key(config.UE4EngineBuildsReg)['values']
-        for engine in registered_engines:
-            eng_val = engine['value']  # type:str
-            if eng_val.startswith('{') and eng_val.endswith('}'):
-                click.secho("Removing arbitrary Engine Association {0}".format(eng_val))
-                reg.delete_value(config.UE4EngineBuildsReg, engine['value'])
-    except Exception:
-        # No entries yet, all good!
-        pass
+    # try:
+    #     registered_engines = reg.read_key(config.UE4EngineBuildsReg)['values']
+    #     for engine in registered_engines:
+    #         eng_val = engine['value']  # type:str
+    #         if eng_val.startswith('{') and eng_val.endswith('}'):
+    #             click.secho("Removing arbitrary Engine Association {0}".format(eng_val))
+    #             reg.delete_value(config.UE4EngineBuildsReg, engine['value'])
+    # except Exception:
+    #     # No entries yet, all good!
+    #     pass
 
     if check_engine_dir_valid(config.UE4EnginePath):
-        click.secho('Setting engine registry key {0} to {1}'.format(config.UE4EngineKeyName, config.UE4EnginePath))
+        # Check if the engine is already registered
+        try:
+            registered_engines = reg.read_key(config.UE4EngineBuildsReg)['values']
+            for engine in registered_engines:
+                if engine['value'] == config.UE4EngineKeyName:
+                    # Check if the data matches the engine path, if not, update the key
+                    if engine['data'] != config.UE4EnginePath:
+                        click.secho('Updating engine registry key {0}:{1} to {2}'.format(config.UE4EngineKeyName,
+                                                                                         engine['data'],
+                                                                                         config.UE4EnginePath))
+                        click.secho('This is probably because the engine has been moved.')
+                        reg.write_value(config.UE4EngineBuildsReg,
+                                        config.UE4EngineKeyName,
+                                        config.UE4EnginePath,
+                                        'REG_SZ')
+                    return True
+        except Exception:
+            pass
 
+        click.secho('Setting engine registry key {0} to {1}'.format(config.UE4EngineKeyName, config.UE4EnginePath))
         try:
             reg.create_key(config.UE4EngineBuildsReg)
         except Exception:
@@ -240,7 +258,7 @@ def register_project_engine(config, prompt_path=True):
             print_error("Could not find engine path, make sure you type the full path!")
             return False
     else:
-        print_error("Could not find engine path!")
+        print_error("Could not find engine path to register!")
         return False
     return True
 
