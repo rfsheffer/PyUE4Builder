@@ -91,7 +91,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
         return False
 
     if not os.path.isfile(script):
-        error_exit('No build script defined! Use the -s arg', not is_automated)
+        error_exit('Build script path is invalid. Check your -s argument.', not is_automated)
 
     with open(script, 'r') as fp:
         try:
