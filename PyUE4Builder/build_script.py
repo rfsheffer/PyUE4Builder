@@ -19,6 +19,10 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
 
 
 @click.command()
+@click.option('--pause_always/--error_pause_only',
+              default=True,
+              show_default=True,
+              help='Pause always or only pause on error?')
 @click.option('--buildexplicit/--no-buildexplicit',
               default=False,
               show_default=True,
@@ -61,7 +65,7 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, build, platform, clean, automated, buildexplicit):
+def build_script(engine, script, configuration, buildtype, build, platform, clean, automated, buildexplicit, pause_always):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
@@ -76,6 +80,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     :param buildexplicit: Should the build system only build what is requested? This prevents convienience cases like
                           the package build building the editor before trying to package. By setting this to true, it is
                           expected that the user has setup the proper state before building.
+    :param pause_always: Pause always or only pause on error?
     """
     # Fixup for old build type 'Game'.
     if buildtype == 'Game':
@@ -87,8 +92,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
 
     # Ensure Visual Studio is installed
     if get_visual_studio_version() not in [2015, 2017]:
-        print_error('Cannot run build, valid visual studio install not found!')
-        return False
+        error_exit('Cannot run build, valid visual studio install not found!', not is_automated)
 
     if not os.path.isfile(script):
         error_exit('Build script path is invalid. Check your -s argument.', not is_automated)
@@ -176,7 +180,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
                     error_exit(package.error, not config.automated)
 
     print_action('SUCCESS!')
-    if not config.automated:
+    if not config.automated and pause_always:
         click.pause()
 
 

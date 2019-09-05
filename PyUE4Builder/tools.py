@@ -67,7 +67,9 @@ def genproj_func(config: ProjectConfig, run_it):
         error_exit('Failed to generate project files, see errors...', not config.automated)
 
     if run_it:
-        pass
+        launch(os.path.join(config.uproject_dir_path, config.uproject_name + '.sln'),
+               separate_terminal=True,
+               should_wait=False)
 
 
 @tools.command()
