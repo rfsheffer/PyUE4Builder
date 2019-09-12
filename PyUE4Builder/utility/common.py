@@ -101,16 +101,19 @@ def error_exit(msg, should_pause):
 
 
 @contextmanager
-def push_directory(dir_name):
+def push_directory(dir_name, print_steps=True):
     """
     Push a directory as the current working directory. Yield until finished.
     :param dir_name: Directory Name
+    :param print_steps: Print the pushing and popping of this routine
     """
-    click.secho('Pushing {}'.format(dir_name))
+    if print_steps:
+        click.secho('Pushing {}'.format(dir_name))
     old_dir = os.getcwd()
     os.chdir(dir_name)
     yield
-    click.secho('Popping {}'.format(dir_name))
+    if print_steps:
+        click.secho('Popping {}'.format(dir_name))
     os.chdir(old_dir)
 
 

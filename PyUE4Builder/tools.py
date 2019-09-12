@@ -6,8 +6,9 @@ import json
 import time
 import shutil
 import subprocess
-from utility.common import launch, print_action, get_visual_studio_version, error_exit
+from utility.common import launch, print_action, get_visual_studio_version, error_exit, push_directory
 from config import ProjectConfig
+from copy import deepcopy
 
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
@@ -237,13 +238,28 @@ def setup_perforce_creds(config: ProjectConfig):
 
     try:
         subprocess.check_output(["p4", "set", "P4CONFIG=p4config.txt"])
-        result = subprocess.run(["p4", "client", "-o"], stdout=subprocess.PIPE, timeout=4, check=False).stdout.decode("utf-8")
+        result = subprocess.run(["p4", "client", "-o"],
+                                stdout=subprocess.PIPE,
+                                timeout=4,
+                                check=False).stdout.decode("utf-8")
         in_error = 'error' in result
     except Exception:
         in_error = True
     if in_error:
         error_exit('A connection could not be made with perforce. Check your settings and try again.',
                    not config.automated)
+
+
+def do_project_build(extra_args=None):
+    args = [os.path.join(os.path.dirname(__file__), 'build_script.py'),
+            '-s', '"{}"'.format(script_file_path), '-t', 'Editor']
+    if extra_args is not None:
+        args.extend(extra_args)
+    result = launch(os.path.join(os.environ.get("PYTHON_HOME", ".").replace('"', ''), "python.exe"),
+                    args,
+                    False,
+                    should_wait=True)
+    return result == 0
 
 
 @tools.command()
@@ -266,11 +282,9 @@ def tools_select(config: ProjectConfig):
     if result == 1:
         runeditor_func(config)
     elif result == 2:
-        launch(os.path.join(os.environ.get("PYTHON_HOME", "."), "python.exe"),
-               ['build_script.py', '-s "{}"'.format(script_file_path), '-t Editor'], True, should_wait=False)
+        do_project_build()
     elif result == 3:
-        launch(os.path.join(os.environ.get("PYTHON_HOME", "."), "python.exe"),
-               ['build_script.py', '-s "{}"'.format(script_file_path), '-t Editor', '--clean'], True, should_wait=False)
+        do_project_build(['--clean'])
     elif result == 4:
         standalone_func(config, '', '', 0, '')
     elif result == 5:
@@ -283,6 +297,106 @@ def tools_select(config: ProjectConfig):
         genproj_func(config, True)
     elif result == 9:
         setup_perforce_creds(config)
+
+
+class ProjectBuildCheck(object):
+    repos_to_check = {}
+    cache_file_name = 'project_cache.json'
+    engine_dir = ''
+    engine_branch = ''
+
+    def __init__(self, config: ProjectConfig):
+        self.from_file = False
+        self.repo_rev = ''
+        self.engine_repo_rev = ''
+        self.other_repos = {}
+        ProjectBuildCheck.populate_check_repos(config)
+        self.load_cache()
+        ProjectBuildCheck.engine_dir = config.UE4EnginePath
+        ProjectBuildCheck.engine_branch = config.script['config']['git_proj_branch']
+
+    def load_cache(self):
+        try:
+            with open(ProjectBuildCheck.cache_file_name, 'r') as fp:
+                json_s = json.load(fp)
+                for k, v in json_s.items():
+                    setattr(self, k, v)
+                self.from_file = True
+        except IOError:
+            pass
+        except ValueError:
+            pass
+        for other_repo in ProjectBuildCheck.repos_to_check.keys():
+            if other_repo not in self.other_repos:
+                self.other_repos[other_repo] = ''
+
+    def save_cache(self):
+        with push_directory(ProjectBuildCheck.engine_dir, False):
+            self.engine_repo_rev = ProjectBuildCheck.get_cwd_repo_rev(ProjectBuildCheck.engine_branch)
+        self.repo_rev = ProjectBuildCheck.get_cwd_repo_rev('master')
+        for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
+            with push_directory(os.path.join(os.getcwd(), to_dir), False):
+                self.other_repos[to_dir] = ProjectBuildCheck.get_cwd_repo_rev(branch)
+        with open(ProjectBuildCheck.cache_file_name, 'w') as fp:
+            out = deepcopy(self.__dict__)
+            del out['from_file']
+            json.dump(out, fp, indent=4)
+
+    def was_loaded(self):
+        return self.from_file
+
+    @staticmethod
+    def get_cwd_repo_rev(branch_name):
+        return subprocess.check_output(["git", "rev-parse", "--short", branch_name]).decode("utf-8").strip()
+
+    @staticmethod
+    def populate_check_repos(config: ProjectConfig):
+        for step in config.script['pre_build_steps']:
+            if step['action']['module'] == 'actions.git':
+                ProjectBuildCheck.repos_to_check['{}\\{}'.format(config.uproject_name,
+                                                                 step['action']['args']['output_folder'])] = \
+                    step['action']['args']['branch']
+
+    def check_repos(self):
+        # Check the engine repo
+        with push_directory(ProjectBuildCheck.engine_dir, False):
+            if self.engine_repo_rev != \
+                    ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(ProjectBuildCheck.engine_branch)):
+                return False
+        # Check the local repo against our cached value
+        if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('master'):
+            return False
+        for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
+            with push_directory(os.path.join(os.getcwd(), to_dir), False):
+                if self.other_repos[to_dir] != ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(branch)):
+                    return False
+        return True
+
+
+@tools.command()
+@pass_config
+def build_project_if_changed(config: ProjectConfig):
+    print_action('Checking Project Build Status...')
+    build_checker = ProjectBuildCheck(config)
+    if not build_checker.check_repos():
+        if not do_project_build(['--error_pause_only']):
+            error_exit('Build Failed. Halting...', not config.automated)
+        else:
+            build_checker.save_cache()
+
+
+@tools.command()
+@pass_config
+def build_project_if_first_sync(config: ProjectConfig):
+    print_action('Checking First Sync Status...')
+    build_checker = ProjectBuildCheck(config)
+    if not build_checker.was_loaded():
+        # First sync, so do a build
+        if not do_project_build(['--error_pause_only']):
+            error_exit('Build Failed. Halting...', not config.automated)
+        else:
+            build_checker.save_cache()
+
 
 if __name__ == "__main__":
     try:
