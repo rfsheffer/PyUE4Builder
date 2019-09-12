@@ -364,7 +364,7 @@ class ProjectBuildCheck(object):
                     ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(ProjectBuildCheck.engine_branch)):
                 return False
         # Check the local repo against our cached value
-        if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('master'):
+        if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('origin/master'):
             return False
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
