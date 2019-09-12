@@ -252,7 +252,7 @@ def setup_perforce_creds(config: ProjectConfig):
 
 def do_project_build(extra_args=None):
     args = [os.path.join(os.path.dirname(__file__), 'build_script.py'),
-            '-s', '"{}"'.format(script_file_path), '-t', 'Editor']
+            '-s', '{}'.format(os.path.join(script_file_path)), '-t', 'Editor']
     if extra_args is not None:
         args.extend(extra_args)
     result = launch(os.path.join(os.environ.get("PYTHON_HOME", ".").replace('"', ''), "python.exe"),
