@@ -4,7 +4,7 @@ import os
 import click
 import json
 from config import ProjectConfig, project_configurations, platform_types
-from utility.common import launch, print_title, print_action, error_exit, print_error, \
+from utility.common import launch, print_title, print_action, error_exit, \
     get_visual_studio_version, register_project_engine
 from actions.build import Build
 from actions.package import Package
@@ -65,7 +65,8 @@ is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"
               type=click.STRING,
               default='',
               help='The desired engine path, absolute or relative. Blank will try to find the engine for you.')
-def build_script(engine, script, configuration, buildtype, build, platform, clean, automated, buildexplicit, pause_always):
+def build_script(engine, script, configuration, buildtype, build, platform, clean,
+                 automated, buildexplicit, pause_always):
     """
     The Main call for build script execution.
     :param engine: The desired engine path, absolute or relative.
@@ -202,13 +203,22 @@ def ensure_engine(config, engine_override):
         elif not config.automated:
             result = click.confirm('Would you like to specify the location of the engine install?', default=False)
             if result:
-                result = click.prompt('Where would you like to install the engine?')
-                if not os.path.exists(result):
-                    try:
-                        os.makedirs(result)
-                    except Exception:
-                        error_exit('Unable to create engine directory! Tried @ {}'.format(result), not config.automated)
-                config.setup_engine_paths(result)
+                while True:
+                    result = click.prompt('Where would you like to install the engine?')
+                    if not os.path.isabs(result):
+                        result = os.path.abspath(result)
+                        ask_rel = click.confirm('This is a relative path expanding to {}\nIs this ok?'.format(result),
+                                                default=False)
+                        if not ask_rel:
+                            continue
+                    if not os.path.exists(result):
+                        try:
+                            os.makedirs(result)
+                        except Exception:
+                            error_exit('Unable to create engine directory! Tried at {}'.format(result),
+                                       not config.automated)
+                    config.setup_engine_paths(result)
+                    break
             else:
                 # Find an ideal location to put the engine
                 if len(config.engine_path_name) == 0:
