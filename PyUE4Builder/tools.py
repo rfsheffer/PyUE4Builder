@@ -20,12 +20,16 @@ script_file_path = ''
 
 
 @click.group()
+@click.option('--ensure_engine/--ignore_engine',
+              default=True,
+              show_default=True,
+              help='Should the engine exist to be able to run this tool command?')
 @click.option('--script', '-s',
               type=click.STRING,
               required=True,
               help='The Project Script which defines the projects paths, build steps, and extra information.')
 @pass_config
-def tools(config: ProjectConfig, script):
+def tools(config: ProjectConfig, script, ensure_engine):
     if not os.path.isfile(script):
         error_exit('No build script defined! Use the -s arg', not config.automated)
 
@@ -37,7 +41,7 @@ def tools(config: ProjectConfig, script):
         except Exception as jsonError:
             error_exit('Build Script Syntax Error:\n{}'.format(jsonError), not config.automated)
             return
-        if not config.load_configuration(script_json, ensure_engine=True):
+        if not config.load_configuration(script_json, ensure_engine=ensure_engine):
             error_exit('Invalid Script file!', not config.automated)
 
 
@@ -388,14 +392,24 @@ def build_project_if_changed(config: ProjectConfig):
 @tools.command()
 @pass_config
 def build_project_if_first_sync(config: ProjectConfig):
-    print_action('Checking First Sync Status...')
-    build_checker = ProjectBuildCheck(config)
-    if not build_checker.was_loaded():
-        # First sync, so do a build
+    if config.UE4EnginePath == '':
+        # No engine, definitely build project
+        print_action('No engine found, running full build...')
         if not do_project_build(['--error_pause_only']):
             error_exit('Build Failed. Halting...', not config.automated)
         else:
+            config.setup_engine_paths()
+            build_checker = ProjectBuildCheck(config)
             build_checker.save_cache()
+    else:
+        print_action('Checking First Sync Status...')
+        build_checker = ProjectBuildCheck(config)
+        if not build_checker.was_loaded():
+            # First sync, so do a build
+            if not do_project_build(['--error_pause_only']):
+                error_exit('Build Failed. Halting...', not config.automated)
+            else:
+                build_checker.save_cache()
 
 
 if __name__ == "__main__":
