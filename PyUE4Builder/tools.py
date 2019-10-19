@@ -337,7 +337,8 @@ class ProjectBuildCheck(object):
     def save_cache(self):
         with push_directory(ProjectBuildCheck.engine_dir, False):
             self.engine_repo_rev = ProjectBuildCheck.get_cwd_repo_rev(ProjectBuildCheck.engine_branch)
-        self.repo_rev = ProjectBuildCheck.get_cwd_repo_rev('master')
+        if os.path.exists('.git'):
+            self.repo_rev = ProjectBuildCheck.get_cwd_repo_rev('master')
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
                 self.other_repos[to_dir] = ProjectBuildCheck.get_cwd_repo_rev(branch)
@@ -368,8 +369,9 @@ class ProjectBuildCheck(object):
                     ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(ProjectBuildCheck.engine_branch)):
                 return False
         # Check the local repo against our cached value
-        if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('origin/master'):
-            return False
+        if os.path.exists('.git'):
+            if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('origin/master'):
+                return False
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
                 if self.other_repos[to_dir] != ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(branch)):
