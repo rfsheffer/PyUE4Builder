@@ -3,6 +3,10 @@
 import json
 from copy import deepcopy
 
+__author__ = "Ryan Sheffer"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
+__credits__ = ["Ryan Sheffer", "VREAL"]
+
 
 class BuildMeta(object):
     """

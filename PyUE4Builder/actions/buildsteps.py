@@ -7,7 +7,7 @@ from copy import deepcopy
 from build_meta import BuildMeta
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 
@@ -102,7 +102,7 @@ class Buildsteps(Action):
                                 break
 
                         cur_index += 1
-                except Exception as e:
+                except Exception:
                     self.error = 'Invalid conditional statement!'
                     return False
 

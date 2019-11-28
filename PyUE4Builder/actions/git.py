@@ -7,7 +7,7 @@ import shutil
 from utility.common import print_action, push_directory, launch
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 

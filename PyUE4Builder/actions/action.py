@@ -3,7 +3,7 @@
 from utility.common import print_warning
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 

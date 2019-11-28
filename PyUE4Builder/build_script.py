@@ -12,7 +12,7 @@ from actions.git import Git
 from actions.buildsteps import Buildsteps
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 is_automated = os.environ.get("PYUE4BUILDER_AUTOMATED", "0") == "1"

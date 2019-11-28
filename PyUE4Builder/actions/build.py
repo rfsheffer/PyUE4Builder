@@ -7,7 +7,7 @@ from actions.action import Action
 from utility.common import get_visual_studio_version, launch, print_action
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 

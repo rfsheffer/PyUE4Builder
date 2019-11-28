@@ -6,7 +6,7 @@ from actions.action import Action
 from utility.common import print_action, launch
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer"]
 
 # Environment Variables which need to be set to the relavant strings for this script to function

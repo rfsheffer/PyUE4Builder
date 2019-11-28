@@ -8,7 +8,7 @@ from winregistry import WinRegistry as Reg
 from utility.common import check_engine_dir_valid, is_editor_running
 
 __author__ = "Ryan Sheffer"
-__copyright__ = "Copyright 2018, Ryan Sheffer Open Source"
+__copyright__ = "Copyright 2020, Sheffer Online Services"
 __credits__ = ["Ryan Sheffer", "VREAL"]
 
 project_configurations = ['Shipping', 'Development', 'Debug']
