@@ -334,7 +334,7 @@ class ProjectBuildCheck(object):
             if other_repo not in self.other_repos:
                 self.other_repos[other_repo] = ''
 
-    def save_cache(self):
+    def update_repo_rev_cache(self):
         with push_directory(ProjectBuildCheck.engine_dir, False):
             self.engine_repo_rev = ProjectBuildCheck.get_cwd_repo_rev(ProjectBuildCheck.engine_branch)
         if os.path.exists('.git'):
@@ -342,6 +342,8 @@ class ProjectBuildCheck(object):
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
                 self.other_repos[to_dir] = ProjectBuildCheck.get_cwd_repo_rev(branch)
+
+    def save_cache(self):
         with open(ProjectBuildCheck.cache_file_name, 'w') as fp:
             out = deepcopy(self.__dict__)
             del out['from_file']
@@ -353,6 +355,10 @@ class ProjectBuildCheck(object):
     @staticmethod
     def get_cwd_repo_rev(branch_name):
         return subprocess.check_output(["git", "rev-parse", "--short", branch_name]).decode("utf-8").strip()
+
+    @staticmethod
+    def get_cwd_repo_status():
+        return subprocess.check_output(["git", "status"]).decode("utf-8")
 
     @staticmethod
     def populate_check_repos(config: ProjectConfig):
@@ -378,6 +384,85 @@ class ProjectBuildCheck(object):
                     return False
         return True
 
+    fetch_result_OOD = '- out of date -'
+    fetch_result_commit = '- can commit -'
+    fetch_result_none = ''
+
+    def fetch_status_info_result(self, repo_name, cur_rev, other_rev):
+        info_out = ''
+        result = self.fetch_result_none
+        if cur_rev != other_rev:
+            info_out += 'out-of_date'
+            result = self.fetch_result_OOD
+        status = self.get_cwd_repo_status()
+        if 'nothing to commit, working tree clean' not in status:
+            status = status.split('\n')
+            info_out += '{}Needs commit:\n'.format('' if len(info_out) == 0 else ' - ')
+            for stat in status[5:]:
+                if len(stat) != 0 and '(' not in stat:
+                    info_out += (stat + '\n')
+            result = self.fetch_result_commit
+        if len(info_out) != 0:
+            print('{} : {}'.format(repo_name, info_out))
+        else:
+            print('{} up-to-date!'.format(repo_name))
+        return result
+
+    @staticmethod
+    def ask_do_commit():
+        ask_do_commit = click.confirm('Make Commit?', default=False)
+        if ask_do_commit:
+            git_filter = click.prompt('Type optional filter', default='*')
+            message = click.prompt('Type commit message')
+            print(subprocess.check_output(["git", "add", git_filter]).decode("utf-8"))
+            print(subprocess.check_output(["git", "status"]).decode("utf-8"))
+            if click.confirm('All Good?', default=False):
+                print(subprocess.check_output(["git", "commit", '-m', '"{}"'.format(message)]).decode("utf-8"))
+                print(subprocess.check_output(["git", "push"]).decode("utf-8"))
+                return True
+            else:
+                print('Skipping so you can fix...')
+        return False
+
+    def check_and_print_repo_status(self):
+        cache_updated = False
+        ask_about_commits = click.confirm('Would you like to make commits?', default=False)
+        # Check the engine repo
+        with push_directory(ProjectBuildCheck.engine_dir, False):
+            engine_rev = ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(ProjectBuildCheck.engine_branch))
+            self.fetch_status_info_result('Engine', self.engine_repo_rev, engine_rev)
+        # Check the local repo against our cached value
+        if os.path.exists('.git'):
+            result = self.fetch_status_info_result('Project', self.repo_rev,
+                                                   ProjectBuildCheck.get_cwd_repo_rev('origin/master'))
+            if ask_about_commits:
+                if result == self.fetch_result_commit:
+                    if self.ask_do_commit():
+                        self.repo_rev = ProjectBuildCheck.get_cwd_repo_rev('origin/master')
+                        cache_updated = True
+                elif result == self.fetch_result_OOD:
+                    if click.confirm('Update cached rev?', default=False):
+                        self.repo_rev = ProjectBuildCheck.get_cwd_repo_rev('origin/master')
+                        cache_updated = True
+        for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
+            with push_directory(os.path.join(os.getcwd(), to_dir), False):
+                path_splits = os.path.split(to_dir)
+                branch_path = 'origin/{}'.format(branch)
+                result = self.fetch_status_info_result(path_splits[len(path_splits) - 1].title(),
+                                                       self.other_repos[to_dir],
+                                                       ProjectBuildCheck.get_cwd_repo_rev(branch_path))
+                if ask_about_commits:
+                    if result == self.fetch_result_commit:
+                        if self.ask_do_commit():
+                            self.other_repos[to_dir] = ProjectBuildCheck.get_cwd_repo_rev(branch_path)
+                            cache_updated = True
+                    elif result == self.fetch_result_OOD:
+                        if click.confirm('Update cached rev?', default=False):
+                            self.other_repos[to_dir] = ProjectBuildCheck.get_cwd_repo_rev(branch_path)
+                            cache_updated = True
+        if cache_updated:
+            self.save_cache()
+
 
 @tools.command()
 @pass_config
@@ -388,6 +473,7 @@ def build_project_if_changed(config: ProjectConfig):
         if not do_project_build(['--error_pause_only']):
             error_exit('Build Failed. Halting...', not config.automated)
         else:
+            build_checker.update_repo_rev_cache()
             build_checker.save_cache()
 
 
@@ -402,6 +488,7 @@ def build_project_if_first_sync(config: ProjectConfig):
         else:
             config.setup_engine_paths()
             build_checker = ProjectBuildCheck(config)
+            build_checker.update_repo_rev_cache()
             build_checker.save_cache()
     else:
         print_action('Checking First Sync Status...')
@@ -411,8 +498,16 @@ def build_project_if_first_sync(config: ProjectConfig):
             if not do_project_build(['--error_pause_only']):
                 error_exit('Build Failed. Halting...', not config.automated)
             else:
+                build_checker.update_repo_rev_cache()
                 build_checker.save_cache()
 
+
+@tools.command()
+@pass_config
+def report_repo_status(config: ProjectConfig):
+    print_action('Repo Status:')
+    build_checker = ProjectBuildCheck(config)
+    build_checker.check_and_print_repo_status()
 
 if __name__ == "__main__":
     try:
