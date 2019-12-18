@@ -413,11 +413,16 @@ class ProjectBuildCheck(object):
         ask_do_commit = click.confirm('Make Commit?', default=False)
         if ask_do_commit:
             git_filter = click.prompt('Type optional filter', default='*')
-            message = click.prompt('Type commit message')
+            message = click.prompt('Type commit message (split on \\n)')
+            messages = message.split('\\n')
+            git_cmd = ["git", "commit"]
+            for message in messages:
+                git_cmd.append('-m')
+                git_cmd.append('- {}'.format(message.strip()))
             print(subprocess.check_output(["git", "add", git_filter]).decode("utf-8"))
             print(subprocess.check_output(["git", "status"]).decode("utf-8"))
             if click.confirm('All Good?', default=False):
-                print(subprocess.check_output(["git", "commit", '-m', '"{}"'.format(message)]).decode("utf-8"))
+                print(subprocess.check_output(git_cmd).decode("utf-8"))
                 print(subprocess.check_output(["git", "push"]).decode("utf-8"))
                 return True
             else:
@@ -508,6 +513,17 @@ def report_repo_status(config: ProjectConfig):
     print_action('Repo Status:')
     build_checker = ProjectBuildCheck(config)
     build_checker.check_and_print_repo_status()
+
+
+# def main_test():
+#     message = click.prompt('Type commit message')
+#     messages = message.split('\\n')
+#     git_cmd = ["git", "commit"]
+#     for message in messages:
+#         git_cmd.append('-m')
+#         git_cmd.append('"- {}"'.format(message.strip()))
+#     print(git_cmd)
+
 
 if __name__ == "__main__":
     try:
