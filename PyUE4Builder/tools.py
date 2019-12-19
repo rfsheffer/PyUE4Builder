@@ -370,6 +370,8 @@ class ProjectBuildCheck(object):
 
     def check_repos(self):
         # Check the engine repo
+        if not os.path.isdir(ProjectBuildCheck.engine_dir):
+            return False
         with push_directory(ProjectBuildCheck.engine_dir, False):
             if self.engine_repo_rev != \
                     ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(ProjectBuildCheck.engine_branch)):
@@ -379,6 +381,8 @@ class ProjectBuildCheck(object):
             if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('origin/master'):
                 return False
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
+            if not os.path.isdir(os.path.join(os.getcwd(), to_dir)):
+                return False
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
                 if self.other_repos[to_dir] != ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(branch)):
                     return False
@@ -450,6 +454,8 @@ class ProjectBuildCheck(object):
                         self.repo_rev = ProjectBuildCheck.get_cwd_repo_rev('origin/master')
                         cache_updated = True
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
+            if not os.path.isdir(os.path.join(os.getcwd(), to_dir)):
+                print('"{}" sub repo doesn\'t exist!'.format(to_dir))
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
                 path_splits = os.path.split(to_dir)
                 branch_path = 'origin/{}'.format(branch)
