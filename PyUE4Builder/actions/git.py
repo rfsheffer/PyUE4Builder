@@ -4,7 +4,9 @@ from actions.action import Action
 import os
 import stat
 import shutil
+import subprocess
 from utility.common import print_action, push_directory, launch
+import click
 
 __author__ = "Ryan Sheffer"
 __copyright__ = "Copyright 2020, Sheffer Online Services"
@@ -39,6 +41,10 @@ class Git(Action):
 
         return ''
 
+    @staticmethod
+    def get_current_branch():
+        return subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode("utf-8").strip()
+
     def run(self):
         if not self.config.automated:
             # First make sure we actually have git credentials
@@ -60,8 +66,26 @@ class Git(Action):
 
         output_dir = os.path.join(self.config.uproject_dir_path, self.output_folder)
 
-        if self.force_repull and os.path.exists(output_dir):
-            print_action("Deleting Unreal Engine Folder for a complete re-pull")
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+        elif os.path.isdir(os.path.join(output_dir, '.git')):
+            # check if the repo in the folder is on the correct branch. If not, delete the folder so we can
+            # start over.
+            with push_directory(output_dir, False):
+                cur_branch = self.get_current_branch()
+                if cur_branch != self.branch_name:
+                    ask_do_repull = click.confirm('Branch mismatch ("{}" should equal "{}"). '
+                                                  'Clobber this entire repo and do a re-pull?'.format(cur_branch,
+                                                                                                      self.branch_name),
+                                                  default=False)
+                    if ask_do_repull:
+                        self.force_repull = True
+                    else:
+                        self.error = 'Branch mismatch caused pull to be halted. Please correct the issue manually.'
+                        return False
+
+        if self.force_repull:
+            print_action("Deleting the folder '{}' for a complete re-pull".format(self.output_folder))
 
             def on_rm_error(func, path, exc_info):
                 # path contains the path of the file that couldn't be removed
@@ -71,10 +95,13 @@ class Git(Action):
                     os.chmod(path, stat.S_IWRITE)
                     os.unlink(path)
 
-            # Forcing a re-pull, delete the whole engine directory!
-            shutil.rmtree(output_dir, onerror=on_rm_error)
-
-        if not os.path.isdir(output_dir):
+            # Forcing a re-pull, delete the whole directory!
+            try:
+                shutil.rmtree(output_dir, onerror=on_rm_error)
+            except Exception:
+                self.error = 'Unable to delete the repo directory for a re-pull. ' \
+                             'Check that the files are not open / held by another process and try again.'
+                return False
             os.makedirs(output_dir)
 
         if not os.path.isdir(os.path.join(output_dir, '.git')):
@@ -85,10 +112,21 @@ class Git(Action):
                 self.error = 'Git clone failed!'
                 return False
         else:
-            with push_directory(output_dir):
+            with push_directory(output_dir, False):
                 print_action("Pulling from Git '{}' branch '{}'".format(self.repo_name, self.branch_name))
                 err = launch('git', ['pull', 'origin', self.branch_name], silent=True)
                 if err != 0:
                     self.error = 'Git pull failed!'
                     return False
         return True
+
+# if __name__ == "__main__":
+#     import sys
+#
+#     class NullConfig:
+#         def __init__(self):
+#             self.uproject_dir_path = ''
+#             self.automated = False
+#     git = Git(NullConfig(), output_folder=sys.argv[1], repo=sys.argv[2], branch=sys.argv[3])
+#     if not git.run():
+#         print(git.error)
