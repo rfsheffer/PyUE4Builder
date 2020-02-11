@@ -317,7 +317,10 @@ class ProjectBuildCheck(object):
         ProjectBuildCheck.populate_check_repos(config)
         self.load_cache()
         ProjectBuildCheck.engine_dir = config.UE4EnginePath
-        ProjectBuildCheck.engine_branch = config.script['config']['git_proj_branch']
+        if 'git_engine_branch' in config.script['config']:
+            ProjectBuildCheck.engine_branch = config.script['config']['git_engine_branch']
+        else:
+            ProjectBuildCheck.engine_branch = config.script['config']['git_proj_branch']
 
     def load_cache(self):
         try:

@@ -191,7 +191,7 @@ def ensure_engine(config, engine_override):
     :param config: The project configuration (may not point to a valid engine yet)
     :param engine_override: The desired engine directory path to use
     """
-    can_pull_engine = config.git_repo != '' and config.git_proj_branch != ''
+    can_pull_engine = config.git_engine_repo != '' and config.git_engine_branch != ''
 
     if config.UE4EnginePath == '':
         if not can_pull_engine and engine_override == '':
@@ -248,8 +248,9 @@ def ensure_engine(config, engine_override):
     # Before doing anything, make sure we have all build dependencies ready
     if can_pull_engine:
         git_action = Git(config)
-        git_action.branch_name = config.git_proj_branch
-        git_action.repo_name = config.git_repo
+        git_action.branch_name = config.git_engine_branch
+        git_action.similar_branches = config.git_engine_similar_branches
+        git_action.repo_name = config.git_engine_repo
         git_action.output_folder = config.UE4EnginePath
         git_action.disable_strict_hostkey_check = True
         git_action.force_repull = False

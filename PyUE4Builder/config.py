@@ -89,8 +89,11 @@ class ProjectConfig(object):
         self.engine_path_name = '..'
 
         # Git Config
-        self.git_proj_branch = ''  # The branch to use in git repo
-        self.git_repo = ''  # ex: git@github.com:MyProject/UnrealEngine.git
+        # Branches which have been used for the current version of the engine. This is useful for allowing branch
+        # switches as opposed to full branch cobbers in the case of moving from engine major to engine major.
+        self.git_engine_similar_branches = []
+        self.git_engine_branch = ''  # The branch to use in git repo
+        self.git_engine_repo = ''  # ex: git@github.com:MyProject/UnrealEngine.git
 
         # Registry keys and values related to unreal engine paths and our special engine name
         # If set to nothing, no registery checks or registration of the engine will be performed.
@@ -131,7 +134,12 @@ class ProjectConfig(object):
         try:
             self.script = deepcopy(script_json)
             for k, v in self.script["config"].items():
-                setattr(self, k, deepcopy(v))
+                if k == 'git_proj_branch':
+                    setattr(self, 'git_engine_branch', deepcopy(v))
+                elif k == 'git_repo':
+                    setattr(self, 'git_engine_repo', deepcopy(v))
+                else:
+                    setattr(self, k, deepcopy(v))
         except Exception as e:
             print_error(e)
             return False

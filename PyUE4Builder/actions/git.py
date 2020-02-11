@@ -22,6 +22,7 @@ class Git(Action):
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
         self.branch_name = kwargs['branch'] if 'branch' in kwargs else ''
+        self.similar_branches = kwargs['similar_branches'] if 'similar_branches' in kwargs else ''
         self.repo_name = kwargs['repo'] if 'repo' in kwargs else ''
         self.output_folder = kwargs['output_folder'] if 'output_folder' in kwargs else ''
         self.rsa_path = kwargs['rsa_path'] if 'rsa_path' in kwargs else ''
@@ -74,15 +75,28 @@ class Git(Action):
             with push_directory(output_dir, False):
                 cur_branch = self.get_current_branch()
                 if cur_branch != self.branch_name:
-                    ask_do_repull = click.confirm('Branch mismatch ("{}" should equal "{}"). '
-                                                  'Clobber this entire repo and do a re-pull?'.format(cur_branch,
-                                                                                                      self.branch_name),
-                                                  default=False)
-                    if ask_do_repull:
-                        self.force_repull = True
+                    if cur_branch in self.similar_branches and self.branch_name in self.similar_branches:
+                        click.secho('Branch mismatch but both branches are similar. Attempting a branch switch...')
+                        cmd_args = ['checkout', '-b', self.branch_name, 'origin/{}'.format(self.branch_name)]
+                        err = launch('git', cmd_args)
+                        if err != 0:
+                            ask_do_repull = click.confirm('Tried to switch branches but failed. '
+                                                          'Would you like to clobber and re-pull?')
+                            if ask_do_repull:
+                                self.force_repull = True
+                            else:
+                                self.error = 'Please correct the issue manually. Check the errors above for hints.'
+                                return False
                     else:
-                        self.error = 'Branch mismatch caused pull to be halted. Please correct the issue manually.'
-                        return False
+                        ask_do_repull = click.confirm('Branch mismatch ("{}" should equal "{}"). Clobber this entire '
+                                                      'repo and do a re-pull?'.format(cur_branch,
+                                                                                      self.branch_name),
+                                                      default=False)
+                        if ask_do_repull:
+                            self.force_repull = True
+                        else:
+                            self.error = 'Branch mismatch caused pull to be halted. Please correct the issue manually.'
+                            return False
 
         if self.force_repull:
             print_action("Deleting the folder '{}' for a complete re-pull".format(self.output_folder))
