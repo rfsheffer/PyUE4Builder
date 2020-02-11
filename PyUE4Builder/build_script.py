@@ -114,10 +114,17 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     if config.automated:
         click.secho('\nAutomated flag set!')
 
+    engine_branch_switched = False
+
     # Ensure the engine exists and we can build
     if not buildexplicit:
-        ensure_engine(config, engine)
+        engine_branch_switched = ensure_engine(config, engine)
+        if engine_branch_switched:
+            config.clean = True
     click.secho('\nProject File Path: {}\nEngine Path: {}'.format(config.uproject_dir_path, config.UE4EnginePath))
+
+    if engine_branch_switched:
+        click.secho('\nEngine Branch switched, will clean and rebuild...\n')
 
     # Ensure the unreal header tool exists. It is important for all Unreal projects
     if not buildexplicit:
@@ -129,7 +136,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
     # Build required engine tools
     if config.should_build_engine_tools and not buildexplicit:
         clean_revert = config.clean
-        if buildtype == "Package":
+        if buildtype == "Package" and not engine_branch_switched:
             config.clean = False  # Don't clean if packaging, waste of time
 
         b = Build(config, build_names=config.build_engine_tools)
@@ -192,6 +199,7 @@ def ensure_engine(config, engine_override):
     :param engine_override: The desired engine directory path to use
     """
     can_pull_engine = config.git_engine_repo != '' and config.git_engine_branch != ''
+    engine_branch_switched = False
 
     if config.UE4EnginePath == '':
         if not can_pull_engine and engine_override == '':
@@ -256,6 +264,7 @@ def ensure_engine(config, engine_override):
         git_action.force_repull = False
         if not git_action.run():
             error_exit(git_action.error, not config.automated)
+        engine_branch_switched = git_action.branch_switched
 
     if not config.setup_engine_paths(engine_override):
         error_exit('Could not setup valid engine paths!', not config.automated)
@@ -288,6 +297,7 @@ def ensure_engine(config, engine_override):
             print_action("Build tool doesn't exist yet, generating project and building...")
             if launch(config.UE4GenProjFilesPath, ['-2017'] if get_visual_studio_version() == 2017 else []) != 0:
                 error_exit('Failed to build UnrealBuildTool.exe!', not config.automated)
+    return engine_branch_switched
 
 if __name__ == "__main__":
     try:

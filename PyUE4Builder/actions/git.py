@@ -29,6 +29,7 @@ class Git(Action):
         self.force_repull = kwargs['force_repull'] if 'force_repull' in kwargs else False
         self.disable_strict_hostkey_check = \
             kwargs['disable_strict_hostkey_check'] if 'disable_strict_hostkey_check' in kwargs else False
+        self.branch_switched = False
 
     def verify(self):
         if self.branch_name == '':
@@ -87,6 +88,8 @@ class Git(Action):
                             else:
                                 self.error = 'Please correct the issue manually. Check the errors above for hints.'
                                 return False
+                        else:
+                            self.branch_switched = True
                     else:
                         ask_do_repull = click.confirm('Branch mismatch ("{}" should equal "{}"). Clobber this entire '
                                                       'repo and do a re-pull?'.format(cur_branch,

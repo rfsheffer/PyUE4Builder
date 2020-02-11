@@ -110,6 +110,7 @@ class ProjectConfig(object):
         self.UE4UBTPath = ''
         self.UE4RunUATBatPath = ''
         self.UE4BuildBatchPath = ''
+        self.UE4RebuildBatchPath = ''
         self.UE4CleanBatchPath = ''
         self.UE4EditorPath = ''
         self.UE4VersionSelectorPath = ''
@@ -213,6 +214,7 @@ class ProjectConfig(object):
         self.UE4UBTPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\UnrealBuildTool.exe'))
         self.UE4RunUATBatPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\RunUAT.bat'))
         self.UE4BuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Build.bat'))
+        self.UE4RebuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Rebuild.bat'))
         self.UE4CleanBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Clean.bat'))
         self.UE4EditorPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\Win64\\UE4Editor.exe'))
         self.UE4VersionSelectorPath = str(Path(self.UE4EnginePath,
