@@ -365,7 +365,11 @@ class ProjectBuildCheck(object):
 
     @staticmethod
     def get_cwd_branch_name():
-        return subprocess.check_output(["git", "branch"]).decode("utf-8").replace('*', '', 1).strip()
+        branches = subprocess.check_output(["git", "branch"]).decode("utf-8").splitlines()
+        for branch in branches:
+            if branch.strip().startswith('*'):
+                return branch.replace('*', '', 1).strip()
+        return ''
 
     @staticmethod
     def populate_check_repos(config: ProjectConfig):

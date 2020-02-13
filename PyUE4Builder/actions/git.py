@@ -45,7 +45,11 @@ class Git(Action):
 
     @staticmethod
     def get_current_branch():
-        return subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode("utf-8").strip()
+        branches = subprocess.check_output(["git", "branch"]).decode("utf-8").splitlines()
+        for branch in branches:
+            if branch.strip().startswith('*'):
+                return branch.replace('*', '', 1).strip()
+        return ''
 
     def run(self):
         if not self.config.automated:
@@ -77,11 +81,18 @@ class Git(Action):
                 cur_branch = self.get_current_branch()
                 if cur_branch != self.branch_name:
                     if cur_branch in self.similar_branches and self.branch_name in self.similar_branches:
-                        click.secho('Branch mismatch but both branches are similar. Attempting a branch switch...')
+                        do_branch_switch = click.confirm('Branch mismatch but both branches are similar. '
+                                                         'Do branch switch? (If you have unsaved changes in this repo '
+                                                         'this will clobber them!)')
+                        if not do_branch_switch:
+                            self.error = 'Clean up your repo manually so a branch switch can be made.'
+                            return False
                         err = launch('git', ['fetch', 'origin'])
                         if err != 0:
                             self.error = 'Git fetch failed...'
                             return False
+                        # Cleanup before branch switch
+                        launch('git', ['checkout', '--', '*'])
                         cmd_args = ['checkout', '-b', self.branch_name, 'origin/{}'.format(self.branch_name)]
                         err = launch('git', cmd_args)
                         if err != 0:
@@ -93,6 +104,8 @@ class Git(Action):
                                 self.error = 'Please correct the issue manually. Check the errors above for hints.'
                                 return False
                         else:
+                            # Cleanup again just in case
+                            launch('git', ['checkout', '--', '*'])
                             self.branch_switched = True
                     else:
                         ask_do_repull = click.confirm('Branch mismatch ("{}" should equal "{}"). Clobber this entire '
