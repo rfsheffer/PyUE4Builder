@@ -364,6 +364,10 @@ class ProjectBuildCheck(object):
         return subprocess.check_output(["git", "status"]).decode("utf-8")
 
     @staticmethod
+    def get_cwd_branch_name():
+        return subprocess.check_output(["git", "branch"]).decode("utf-8").replace('*', '', 1).strip()
+
+    @staticmethod
     def populate_check_repos(config: ProjectConfig):
         for step in config.script['pre_build_steps']:
             if step['action']['module'] == 'actions.git':
@@ -376,18 +380,21 @@ class ProjectBuildCheck(object):
         if not os.path.isdir(ProjectBuildCheck.engine_dir):
             return False
         with push_directory(ProjectBuildCheck.engine_dir, False):
-            if self.engine_repo_rev != \
-                    ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(ProjectBuildCheck.engine_branch)):
+            if self.get_cwd_branch_name() != self.engine_branch:
+                return False
+            if self.engine_repo_rev != self.get_cwd_repo_rev('origin/{}'.format(self.engine_branch)):
                 return False
         # Check the local repo against our cached value
         if os.path.exists('.git'):
-            if self.repo_rev != ProjectBuildCheck.get_cwd_repo_rev('origin/master'):
+            if self.repo_rev != self.get_cwd_repo_rev('origin/master'):
                 return False
         for to_dir, branch in ProjectBuildCheck.repos_to_check.items():
             if not os.path.isdir(os.path.join(os.getcwd(), to_dir)):
                 return False
             with push_directory(os.path.join(os.getcwd(), to_dir), False):
-                if self.other_repos[to_dir] != ProjectBuildCheck.get_cwd_repo_rev('origin/{}'.format(branch)):
+                if self.get_cwd_branch_name() != branch:
+                    return False
+                if self.other_repos[to_dir] != self.get_cwd_repo_rev('origin/{}'.format(branch)):
                     return False
         return True
 
