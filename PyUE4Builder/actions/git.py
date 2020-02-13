@@ -78,6 +78,10 @@ class Git(Action):
                 if cur_branch != self.branch_name:
                     if cur_branch in self.similar_branches and self.branch_name in self.similar_branches:
                         click.secho('Branch mismatch but both branches are similar. Attempting a branch switch...')
+                        err = launch('git', ['fetch', 'origin'])
+                        if err != 0:
+                            self.error = 'Git fetch failed...'
+                            return False
                         cmd_args = ['checkout', '-b', self.branch_name, 'origin/{}'.format(self.branch_name)]
                         err = launch('git', cmd_args)
                         if err != 0:
