@@ -253,6 +253,20 @@ def setup_perforce_creds(config: ProjectConfig):
         error_exit('A connection could not be made with perforce. Check your settings and try again.',
                    not config.automated)
 
+def fix_redirects(config: ProjectConfig):
+    print_action('Fixing Redirectors')
+    cmd_args = [config.uproject_file_path,
+                '-run=ResavePackages',
+                '-fixupredirects',
+                '-autocheckout',
+                '-projectonly',
+                '-unattended']
+    if launch(config.UE4EditorPath, cmd_args) != 0:
+        error_exit('Failed to fixup redirectors, see errors...', not config.automated)
+
+    if not config.automated:
+        click.pause()
+
 
 def do_project_build(extra_args=None):
     args = [os.path.join(os.path.dirname(__file__), 'build_script.py'),
@@ -279,7 +293,8 @@ def tools_select(config: ProjectConfig):
                           "6: Generate Localization\n"
                           "7: Run Editor (No Sync Check)\n"
                           "8: Run Visual Studio\n"
-                          "9: Setup Perforce Credentials\n", type=int)
+                          "9: Setup Perforce Credentials\n"
+                          "10: Fixup Redirectors\n", type=int)
     if result is None:
         return
 
@@ -301,6 +316,8 @@ def tools_select(config: ProjectConfig):
         genproj_func(config, True)
     elif result == 9:
         setup_perforce_creds(config)
+    elif result == 10:
+        fix_redirects(config)
 
 
 class ProjectBuildCheck(object):
