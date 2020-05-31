@@ -513,7 +513,7 @@ def build_project_if_changed(config: ProjectConfig):
     build_checker = ProjectBuildCheck(config)
     if not build_checker.check_repos():
         if not do_project_build(['--error_pause_only']):
-            error_exit('Build Failed. Halting...', not config.automated)
+            sys.exit(1)
         else:
             build_checker.update_repo_rev_cache()
             build_checker.save_cache()
@@ -526,7 +526,7 @@ def build_project_if_first_sync(config: ProjectConfig):
         # No engine, definitely build project
         print_action('No engine found, running full build...')
         if not do_project_build(['--error_pause_only']):
-            error_exit('Build Failed. Halting...', not config.automated)
+            sys.exit(1)
         else:
             config.setup_engine_paths()
             build_checker = ProjectBuildCheck(config)
@@ -538,7 +538,7 @@ def build_project_if_first_sync(config: ProjectConfig):
         if not build_checker.was_loaded():
             # First sync, so do a build
             if not do_project_build(['--error_pause_only']):
-                error_exit('Build Failed. Halting...', not config.automated)
+                sys.exit(1)
             else:
                 build_checker.update_repo_rev_cache()
                 build_checker.save_cache()

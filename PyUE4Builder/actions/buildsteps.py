@@ -26,7 +26,6 @@ class Buildsteps(Action):
         self.steps_name = kwargs['steps_name'] if 'steps_name' in kwargs else ''
         self.push_meta = kwargs['push_meta'] if 'push_meta' in kwargs else {}
         self.complain_missing_step = kwargs['complain_missing_step'] if 'complain_missing_step' in kwargs else True
-        self.previous_meta = kwargs['build_meta'] if 'build_meta' in kwargs else None
 
     @staticmethod
     def get_arg_docs():
@@ -48,8 +47,8 @@ class Buildsteps(Action):
         build_meta = deepcopy(base_build_meta)
 
         # If this is a sub build steps, it continues the meta of the previous steps
-        if self.previous_meta is not None:
-            for k, v in self.previous_meta.__dict__.items():
+        if self.build_meta is not None:
+            for k, v in self.build_meta.__dict__.items():
                 setattr(build_meta, k, v)
 
         # Push steps meta
