@@ -2,6 +2,7 @@
 
 import os
 import re
+import json
 from copy import deepcopy
 from pathlib import Path
 from winregistry import WinRegistry as Reg
@@ -88,6 +89,10 @@ class ProjectConfig(object):
         # Relative path from the uproject directly to the engine.
         self.engine_path_name = '..'
 
+        self.engine_major_version = -1
+        self.engine_minor_version = -1
+        self.engine_patch_version = -1
+
         # Git Config
         # Branches which have been used for the current version of the engine. This is useful for allowing branch
         # switches as opposed to full branch cobbers in the case of moving from engine major to engine major.
@@ -167,7 +172,8 @@ class ProjectConfig(object):
 
         self.builds_path = os.path.join(self.uproject_dir_path, 'builds')
 
-        if not self.setup_engine_paths(custom_engine_path) and ensure_engine:
+        found_engine = self.setup_engine_paths(custom_engine_path)
+        if ensure_engine and not found_engine:
             print_error("No engine could be found!")
             return False
         return True
@@ -219,7 +225,35 @@ class ProjectConfig(object):
         self.UE4EditorPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\Win64\\UE4Editor.exe'))
         self.UE4VersionSelectorPath = str(Path(self.UE4EnginePath,
                                                'Engine\\Binaries\\Win64\\UnrealVersionSelector-Win64-Shipping.exe'))
+
+        if result:
+            build_version_path = str(Path(self.UE4EnginePath, 'Engine\\Build\\Build.version'))
+            try:
+                with open(build_version_path) as fp:
+                    build_version_json = json.load(fp)
+                    self.engine_major_version = build_version_json['MajorVersion']
+                    self.engine_minor_version = build_version_json['MinorVersion']
+                    self.engine_patch_version = build_version_json['PatchVersion']
+            except Exception:
+                result = False
+
         return result
+
+    def get_suitable_vs_versions(self):
+        if self.engine_minor_version >= 25:
+            return [2019, 2017]  # 2017 is supported, tho not recommended by Epic
+        elif self.engine_minor_version >= 22:
+            return [2019, 2017]
+        elif self.engine_minor_version >= 15:
+            return [2017]
+        elif self.engine_minor_version != -1:
+            return [2015]
+        return []
+
+    def engine_wants_vs_argument(self):
+        if self.engine_minor_version >= 25:
+            return False
+        return True
 
     def check_environment(self):
         """

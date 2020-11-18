@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import click
 import json
 import time
@@ -66,8 +67,8 @@ def genproj_func(config: ProjectConfig, run_it):
     cmd_args = ['-ProjectFiles',
                 '-project={}'.format(config.uproject_file_path),
                 '-game', '-engine']
-    if get_visual_studio_version() == 2017:
-        cmd_args.append('-2017')
+    if config.engine_wants_vs_argument():
+        cmd_args.append('-{}'.format(get_visual_studio_version(config.get_suitable_vs_versions())))
     if launch(config.UE4UBTPath, cmd_args) != 0:
         error_exit('Failed to generate project files, see errors...', not config.automated)
 
@@ -253,6 +254,7 @@ def setup_perforce_creds(config: ProjectConfig):
         error_exit('A connection could not be made with perforce. Check your settings and try again.',
                    not config.automated)
 
+
 def fix_redirects(config: ProjectConfig):
     print_action('Fixing Redirectors')
     cmd_args = [config.uproject_file_path,
@@ -268,9 +270,23 @@ def fix_redirects(config: ProjectConfig):
         click.pause()
 
 
+def compile_all_blueprints(config: ProjectConfig):
+    print_action('Compiling All Blueprints')
+    cmd_args = [config.uproject_file_path,
+                '-run=CompileAllBlueprints',
+                '-autocheckout',
+                '-projectonly',
+                '-unattended']
+    if launch(config.UE4EditorPath, cmd_args) != 0:
+        error_exit('Failed to compile all blueprints, see errors...', not config.automated)
+
+    if not config.automated:
+        click.pause()
+
+
 def do_project_build(extra_args=None):
     args = [os.path.join(os.path.dirname(__file__), 'build_script.py'),
-            '-s', '{}'.format(os.path.join(script_file_path)), '-t', 'Editor']
+            '-s', '{}'.format(script_file_path), '-t', 'Editor']
     if extra_args is not None:
         args.extend(extra_args)
     result = launch(os.path.join(os.environ.get("PYTHON_HOME", ".").replace('"', ''), "python.exe"),
@@ -294,7 +310,9 @@ def tools_select(config: ProjectConfig):
                           "7: Run Editor (No Sync Check)\n"
                           "8: Run Visual Studio\n"
                           "9: Setup Perforce Credentials\n"
-                          "10: Fixup Redirectors\n", type=int)
+                          "10: Fixup Redirectors\n"
+                          "11: Compile All Blueprints\n",
+                          type=int)
     if result is None:
         return
 
@@ -318,6 +336,8 @@ def tools_select(config: ProjectConfig):
         setup_perforce_creds(config)
     elif result == 10:
         fix_redirects(config)
+    elif result == 11:
+        compile_all_blueprints(config)
 
 
 class ProjectBuildCheck(object):

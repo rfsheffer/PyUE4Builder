@@ -59,8 +59,8 @@ class Build(Action):
         if is_game_project:
             cmd_args.append(self.config.uproject_file_path)
         cmd_args += ['-NoHotReload', '-waitmutex']
-        if get_visual_studio_version() == 2017:
-            cmd_args.append('-2017')
+        if self.config.engine_wants_vs_argument():
+            cmd_args.append('-{}'.format(get_visual_studio_version(self.config.get_suitable_vs_versions())))
 
         # Do any pre cleaning
         if self.config.clean or self.force_clean:
