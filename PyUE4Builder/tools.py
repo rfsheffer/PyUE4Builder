@@ -66,9 +66,9 @@ def genproj_func(config: ProjectConfig, run_it):
 
     cmd_args = ['-ProjectFiles',
                 '-project={}'.format(config.uproject_file_path),
-                '-game', '-engine']
-    if config.engine_wants_vs_argument():
-        cmd_args.append('-{}'.format(get_visual_studio_version(config.get_suitable_vs_versions())))
+                '-game',
+                '-engine',
+                '-VS{}'.format(get_visual_studio_version(config.get_suitable_vs_versions()))]
     if launch(config.UE4UBTPath, cmd_args) != 0:
         error_exit('Failed to generate project files, see errors...', not config.automated)
 

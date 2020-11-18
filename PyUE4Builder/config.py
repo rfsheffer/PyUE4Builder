@@ -250,11 +250,6 @@ class ProjectConfig(object):
             return [2015]
         return []
 
-    def engine_wants_vs_argument(self):
-        if self.engine_minor_version >= 25:
-            return False
-        return True
-
     def check_environment(self):
         """
         Check that the environment is sound for building

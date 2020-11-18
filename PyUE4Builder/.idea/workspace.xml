@@ -7,7 +7,6 @@
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build_script.py" afterPath="$PROJECT_DIR$/build_script.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/config.py" afterPath="$PROJECT_DIR$/config.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tools.py" afterPath="$PROJECT_DIR$/tools.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/utility/common.py" afterPath="$PROJECT_DIR$/utility/common.py" />
     </list>
     <ignored path="PyUE4Builder.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -33,14 +32,13 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="tools.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="tools.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tools.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="430">
-              <caret line="76" column="38" selection-start-line="76" selection-start-column="38" selection-end-line="76" selection-end-column="38" />
+            <state relative-caret-position="481">
+              <caret line="79" column="0" selection-start-line="79" selection-start-column="0" selection-end-line="79" selection-end-column="0" />
               <folding>
                 <element signature="e#23#32#0" expanded="true" />
-                <marker date="1605673212224" expanded="true" signature="9484:9607" ph="..." />
               </folding>
             </state>
           </provider>
@@ -49,24 +47,20 @@
       <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/config.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="532">
-              <caret line="256" column="0" selection-start-line="256" selection-start-column="0" selection-end-line="256" selection-end-column="0" />
+            <state relative-caret-position="328">
+              <caret line="250" column="17" selection-start-line="250" selection-start-column="17" selection-end-line="250" selection-end-column="17" />
               <folding>
                 <element signature="e#23#32#0" expanded="true" />
-                <marker date="1605672155095" expanded="true" signature="10535:11065" ph="..." />
-                <marker date="1605672155095" expanded="true" signature="10647:11004" ph="..." />
-                <marker date="1605672155095" expanded="true" signature="10700:11004" ph="..." />
-                <marker date="1605672155095" expanded="true" signature="11536:11625" ph="..." />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="build_script.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="build_script.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/build_script.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="833">
-              <caret line="313" column="0" selection-start-line="313" selection-start-column="0" selection-end-line="313" selection-end-column="0" />
+            <state relative-caret-position="629">
+              <caret line="301" column="103" selection-start-line="301" selection-start-column="103" selection-end-line="301" selection-end-column="103" />
               <folding />
             </state>
           </provider>
@@ -88,7 +82,7 @@
         <entry file="file://$PROJECT_DIR$/actions/build.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="328">
-              <caret line="63" column="0" selection-start-line="63" selection-start-column="0" selection-end-line="63" selection-end-column="0" />
+              <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -106,11 +100,11 @@
         <option value="$PROJECT_DIR$/actions/buildsteps.py" />
         <option value="$PROJECT_DIR$/../../project_repo_status.bat" />
         <option value="$PROJECT_DIR$/actions/git.py" />
-        <option value="$PROJECT_DIR$/config.py" />
         <option value="$PROJECT_DIR$/utility/common.py" />
-        <option value="$PROJECT_DIR$/tools.py" />
         <option value="$PROJECT_DIR$/actions/build.py" />
         <option value="$PROJECT_DIR$/build_script.py" />
+        <option value="$PROJECT_DIR$/config.py" />
+        <option value="$PROJECT_DIR$/tools.py" />
       </list>
     </option>
   </component>
@@ -558,7 +552,6 @@
           <caret line="73" column="0" selection-start-line="73" selection-start-column="0" selection-end-line="73" selection-end-column="0" />
           <folding>
             <element signature="e#23#32#0" expanded="true" />
-            <marker date="1605673212224" expanded="true" signature="9484:9607" ph="..." />
           </folding>
         </state>
       </provider>
@@ -604,7 +597,6 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#23#32#0" expanded="true" />
-            <marker date="1605673212224" expanded="true" signature="9484:9607" ph="..." />
           </folding>
         </state>
       </provider>
@@ -643,7 +635,6 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#23#32#0" expanded="true" />
-            <marker date="1605673212224" expanded="true" signature="9484:9607" ph="..." />
           </folding>
         </state>
       </provider>
@@ -689,7 +680,6 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#23#32#0" expanded="true" />
-            <marker date="1605673212224" expanded="true" signature="9484:9607" ph="..." />
           </folding>
         </state>
       </provider>
@@ -870,44 +860,39 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="532">
-          <caret line="256" column="0" selection-start-line="256" selection-start-column="0" selection-end-line="256" selection-end-column="0" />
-          <folding>
-            <element signature="e#23#32#0" expanded="true" />
-            <marker date="1605672155095" expanded="true" signature="10535:11065" ph="..." />
-            <marker date="1605672155095" expanded="true" signature="10647:11004" ph="..." />
-            <marker date="1605672155095" expanded="true" signature="10700:11004" ph="..." />
-            <marker date="1605672155095" expanded="true" signature="11536:11625" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tools.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="430">
-          <caret line="76" column="38" selection-start-line="76" selection-start-column="38" selection-end-line="76" selection-end-column="38" />
-          <folding>
-            <element signature="e#23#32#0" expanded="true" />
-            <marker date="1605673212224" expanded="true" signature="9484:9607" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/actions/build.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="328">
-          <caret line="63" column="0" selection-start-line="63" selection-start-column="0" selection-end-line="63" selection-end-column="0" />
+          <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/build_script.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="833">
-          <caret line="313" column="0" selection-start-line="313" selection-start-column="0" selection-end-line="313" selection-end-column="0" />
+        <state relative-caret-position="629">
+          <caret line="301" column="103" selection-start-line="301" selection-start-column="103" selection-end-line="301" selection-end-column="103" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="328">
+          <caret line="250" column="17" selection-start-line="250" selection-start-column="17" selection-end-line="250" selection-end-column="17" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="481">
+          <caret line="79" column="0" selection-start-line="79" selection-start-column="0" selection-end-line="79" selection-end-column="0" />
+          <folding>
+            <element signature="e#23#32#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
