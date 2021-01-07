@@ -60,6 +60,9 @@ class ProjectConfig(object):
         # This is the path to the localization compile script
         self.proj_localization_script = ''
 
+        # If true, the Unreal Dependencies command will ensure the latest files, and overwrite old or changed files.
+        self.force_dependencies = True
+
         # If true, the unreal dependency sync will ignore content samples (saving you about 1.4gb give or take)
         # This is great for projects which have no need for content examples.
         self.exclude_samples = False

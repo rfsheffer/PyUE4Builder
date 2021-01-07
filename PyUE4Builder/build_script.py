@@ -285,6 +285,8 @@ def ensure_engine(config, engine_override):
             args.append('-exclude={}'.format(path_name))
 
         cmd_args = []
+        if config.force_dependencies:
+            cmd_args.append('--force')
         if config.exclude_samples:
             for sample_pack in ['FeaturePacks', 'Samples']:
                 add_dep_exclude(sample_pack, cmd_args)
