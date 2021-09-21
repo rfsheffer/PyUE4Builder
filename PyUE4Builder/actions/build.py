@@ -59,7 +59,12 @@ class Build(Action):
         if is_game_project:
             cmd_args.append(self.config.uproject_file_path)
         cmd_args += ['-NoHotReload', '-waitmutex']
-        cmd_args.append('-VS{}'.format(get_visual_studio_version(self.config.get_suitable_vs_versions())))
+        if self.config.engine_minor_version <= 25:
+            cmd_args.append('-VS{}'.format(get_visual_studio_version(self.config.get_suitable_vs_versions())))
+        else:
+            # Engine versions greater than 25 can determine visual studios location and will do it automatically.
+            # We include -FromMsBuild which is common beyond version 25 but it is just a format specifier.
+            cmd_args.append('-FromMsBuild')
 
         # Do any pre cleaning
         if self.config.clean or self.force_clean:

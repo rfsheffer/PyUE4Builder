@@ -301,7 +301,9 @@ def ensure_engine(config, engine_override):
             # We use the generate project files batch script because it ensures the build tool exists,
             # and builds it if not.
             print_action("Build tool doesn't exist yet, generating project and building...")
-            extra_args = ['-VS{}'.format(get_visual_studio_version(config.get_suitable_vs_versions()))]
+            extra_args = []
+            if config.engine_minor_version <= 25:
+                extra_args.append('-VS{}'.format(get_visual_studio_version(config.get_suitable_vs_versions())))
             if launch(config.UE4GenProjFilesPath, extra_args) != 0:
                 error_exit('Failed to build UnrealBuildTool.exe!', not config.automated)
     return engine_branch_switched
