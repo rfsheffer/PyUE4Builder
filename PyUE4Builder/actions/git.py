@@ -139,12 +139,28 @@ class Git(Action):
             os.makedirs(output_dir)
 
         if not os.path.isdir(os.path.join(output_dir, '.git')):
-            print_action("Cloning from Git '{}' branch '{}'".format(self.repo_name, self.branch_name))
-            cmd_args = ['clone', '-b', self.branch_name, self.repo_name, output_dir]
-            err = launch('git', cmd_args)
-            if err != 0:
-                self.error = 'Git clone failed!'
-                return False
+            with push_directory(output_dir, False):
+                print_action("Cloning from Git '{}' branch '{}'".format(self.repo_name, self.branch_name))
+                def check_launch(cmd, args, err):
+                    if launch(cmd, args) != 0:
+                        raise Exception(err)
+                # We allow git folders to already have content because the binary content might be stored on P4 or other and already be
+                # resident in the content folders.
+                # The steps below might seem unusual but is the only way to clone into a folder already containing content
+                try:
+                    check_launch('git', ['init'], 'Failed to init repo!')  # Init git for this folder
+                    check_launch('git', ['remote', 'add', 'origin', self.repo_name], 'Failed to add remote!')  # Add the remote to pull from
+                    check_launch('git', ['fetch'], 'Failed to fetch from remote!')  # Fetch the remote repo
+                    check_launch('git', ['branch', self.branch_name, 'origin/{}'.format(self.branch_name)], 'Failed to create new branch!')  # Create branch from origin
+                    check_launch('git', ['checkout', self.branch_name], 'Failed to checkout branch!')  # Checkout branch
+                except Exception as e:
+                    self.error = e
+                    return False
+                #cmd_args = ['clone', '-b', self.branch_name, self.repo_name, output_dir]
+                #err = launch('git', cmd_args)
+                #if err != 0:
+                #    self.error = 'Git clone failed!'
+                #    return False
         else:
             with push_directory(output_dir, False):
                 print_action("Pulling from Git '{}' branch '{}'".format(self.repo_name, self.branch_name))
