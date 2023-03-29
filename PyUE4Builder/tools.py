@@ -396,6 +396,7 @@ class ProjectBuildCheck(object):
 
     @staticmethod
     def get_cwd_repo_rev(branch_name):
+        subprocess.check_output(["git", "fetch"])
         return subprocess.check_output(["git", "rev-parse", "--short", branch_name]).decode("utf-8").strip()
 
     @staticmethod
