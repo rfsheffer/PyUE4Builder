@@ -1,8 +1,10 @@
 # PyUE4Builder
-PyUE4Builder is a tool for simplifying the process of building an Unreal Engine 4 project. It helps in cases where you would like the project to be built and packaged on continuous integration, or you would like the process of using a custom unreal engine painless for non-technical employees.
+PyUE4Builder is a tool for simplifying the process of building an Unreal Engine 4/5 project. It helps in cases where you would like the project to be built and packaged on continuous integration, or you would like the process of using a custom unreal engine painless for non-technical employees.
+
+Supports Unreal Engine 4.15-4.27 and Unreal 5.0-5.2
 
 # The Why
-Packaging a custom engine and distributing it to your artists/designers can be time-consuming. If edits to the engine are made commonly, you have to either include the entire pre-built install engine on your VCS (40gb of intermediate data) or package it up and re-distribute whenever changes are made, then help all artists/designers get up to speed each time. After doing this enough times, I decided I was wasting far too much time.
+Packaging a custom engine and distributing it to your artists/designers can be time-consuming. If edits to the engine are made commonly, you have to either include the entire pre-built install engine on your VCS (100gb+ of intermediate data) or package it up and re-distribute whenever changes are made, then help all artists/designers get up to speed each time. After doing this enough times, I decided I was wasting far too much time.
 
 I devised these automation scripts for pulling our custom engine from github and building the engine plus game, while also ensuring the environment was able to do the work required and offering useful warnings or errors. This helps guide the user to a successful build or gives enough information for a programmer to help immediately without debugging.
 
@@ -17,7 +19,8 @@ I devised these automation scripts for pulling our custom engine from github and
 # Requirements
 * Windows machine
 * Git for windows installed and git LFS for good measure
-* Visual Studio 2015 or 2017 with unreal prerequisites
+* Visual Studio (2017, 2019, 2022.. whatever the engine version requires) with unreal prerequisites
+* Visual Studio prerequisites for C++ game development and .Net. See the Unreal Engine prerequisites page for the version of Unreal you are targetting.
 * Python 3+ with the click module
 
 # Notes

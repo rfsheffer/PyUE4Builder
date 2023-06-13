@@ -59,7 +59,7 @@ class Build(Action):
         if is_game_project:
             cmd_args.append(self.config.uproject_file_path)
         cmd_args += ['-NoHotReload', '-waitmutex']
-        if self.config.engine_minor_version <= 25:
+        if self.config.engine_major_version == 4 and self.config.engine_minor_version <= 25:
             cmd_args.append('-VS{}'.format(get_visual_studio_version(self.config.get_suitable_vs_versions())))
         else:
             # Engine versions greater than 25 can determine visual studios location and will do it automatically.

@@ -68,7 +68,7 @@ def genproj_func(config: ProjectConfig, run_it):
                 '-project={}'.format(config.uproject_file_path),
                 '-game',
                 '-engine']
-    if config.engine_minor_version <= 25:
+    if config.engine_major_version == 4 and config.engine_minor_version <= 25:
         cmd_args.append('-VS{}'.format(get_visual_studio_version(config.get_suitable_vs_versions())))
 
     if launch(config.UE4UBTPath, cmd_args) != 0:

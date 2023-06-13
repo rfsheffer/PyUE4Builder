@@ -156,8 +156,14 @@ def check_engine_dir_valid(dir_path):
     :param dir_path: The directory to check for validity
     :return: True if the directory appears to be valid
     """
-    return os.path.isdir(dir_path) and \
-        os.path.isfile(os.path.join(dir_path, 'Engine/Binaries/DotNET/GitDependencies.exe'))
+    if os.path.isdir(dir_path):
+        # UE 4 Check
+        if os.path.isfile(os.path.join(dir_path, 'Engine/Binaries/DotNET/GitDependencies.exe')):
+            return True
+        # UE 5 Check
+        if os.path.isfile(os.path.join(dir_path, 'Engine/Binaries/DotNET/GitDependencies/win-x64/GitDependencies.exe')):
+            return True
+    return False
 
 
 def get_p4_ticket(p4_password):

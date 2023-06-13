@@ -73,11 +73,7 @@ class ProjectConfig(object):
         self.extra_dependency_excludes = []
 
         # A list of engine tools which should be built before any build steps are taken
-        self.build_engine_tools = ['UnrealFrontend',
-                                   'ShaderCompileWorker',
-                                   'UnrealLightmass',
-                                   'CrashReportClient',
-                                   'UE4Editor']
+        self.build_engine_tools = []
 
         # Allows disabling the automatic building of engine tools to specify them yourself in your build script.
         self.should_build_engine_tools = True
@@ -114,7 +110,6 @@ class ProjectConfig(object):
         self.UE4EnginePath = ''
         self.UE4GenProjFilesPath = ''
         self.UE4GitDependenciesPath = ''
-        self.UE4EnginePrereqPath = ''
         self.UE4UBTPath = ''
         self.UE4RunUATBatPath = ''
         self.UE4BuildBatchPath = ''
@@ -215,20 +210,6 @@ class ProjectConfig(object):
         if result:
             self.editor_running = is_editor_running(self.UE4EnginePath)
 
-        # Set all absolute paths to unreal tools
-        self.UE4GenProjFilesPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\GenerateProjectFiles.bat'))
-        self.UE4GitDependenciesPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\GitDependencies.exe'))
-        self.UE4EnginePrereqPath = str(Path(self.UE4EnginePath,
-                                            'Engine\\Extras\\Redist\\en-us\\UE4PrereqSetup_x64.exe'))
-        self.UE4UBTPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\UnrealBuildTool.exe'))
-        self.UE4RunUATBatPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\RunUAT.bat'))
-        self.UE4BuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Build.bat'))
-        self.UE4RebuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Rebuild.bat'))
-        self.UE4CleanBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Clean.bat'))
-        self.UE4EditorPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\Win64\\UE4Editor.exe'))
-        self.UE4VersionSelectorPath = str(Path(self.UE4EnginePath,
-                                               'Engine\\Binaries\\Win64\\UnrealVersionSelector-Win64-Shipping.exe'))
-
         if result:
             build_version_path = str(Path(self.UE4EnginePath, 'Engine\\Build\\Build.version'))
             try:
@@ -240,17 +221,51 @@ class ProjectConfig(object):
             except Exception:
                 result = False
 
+        self.build_engine_tools = ['UnrealFrontend',
+                                   'ShaderCompileWorker',
+                                   'UnrealLightmass',
+                                   'CrashReportClient']
+
+        # Set all absolute paths to unreal tools
+        self.UE4GenProjFilesPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\GenerateProjectFiles.bat'))
+        self.UE4RunUATBatPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\RunUAT.bat'))
+        self.UE4BuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Build.bat'))
+        self.UE4RebuildBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Rebuild.bat'))
+        self.UE4CleanBatchPath = str(Path(self.UE4EnginePath, 'Engine\\Build\\BatchFiles\\Clean.bat'))
+
+        if self.engine_major_version >= 5:
+            self.build_engine_tools.append('UnrealEditor')
+            self.UE4GitDependenciesPath = str(
+                Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\GitDependencies\\win-x64\\GitDependencies.exe'))
+            self.UE4UBTPath = str(
+                Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.exe'))
+            self.UE4EditorPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealEditor.exe'))
+            self.UE4VersionSelectorPath = str(Path(self.UE4EnginePath,
+                                                   'Engine\\Binaries\\Win64\\UnrealVersionSelector-Win64-Shipping.exe'))
+        else:
+            self.build_engine_tools.append('UE4Editor')
+            self.UE4GitDependenciesPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\GitDependencies.exe'))
+            self.UE4UBTPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\DotNET\\UnrealBuildTool.exe'))
+            self.UE4EditorPath = str(Path(self.UE4EnginePath, 'Engine\\Binaries\\Win64\\UE4Editor.exe'))
+            self.UE4VersionSelectorPath = str(Path(self.UE4EnginePath,
+                                                   'Engine\\Binaries\\Win64\\UnrealVersionSelector-Win64-Shipping.exe'))
+
         return result
 
     def get_suitable_vs_versions(self):
-        if self.engine_minor_version >= 25:
-            return [2019, 2017]  # 2017 is supported, tho not recommended by Epic
-        elif self.engine_minor_version >= 22:
-            return [2019, 2017]
-        elif self.engine_minor_version >= 15:
-            return [2017]
-        elif self.engine_minor_version != -1:
-            return [2015]
+        if self.engine_major_version >= 5:
+            return [2019, 2022]
+        else:
+            if self.engine_minor_version >= 26:
+                return [2019]
+            if self.engine_minor_version >= 25:
+                return [2019, 2017]  # 2017 is supported, tho not recommended by Epic
+            elif self.engine_minor_version >= 22:
+                return [2019, 2017]
+            elif self.engine_minor_version >= 15:
+                return [2017]
+            elif self.engine_minor_version != -1:
+                return [2015]
         return []
 
     def check_environment(self):
