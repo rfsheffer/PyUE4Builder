@@ -130,8 +130,8 @@ def standalone_func(config: ProjectConfig, extra, ip, waittime, umap):
     cmd_args = [config.uproject_file_path,
                 '-game',
                 '-windowed',
-                '-ResX=1280',
-                '-ResY=720']
+                '-ResX=1920',
+                '-ResY=1080']
     cmd_args.extend(['-'+arg.strip() for arg in extra.split('-')[1:]])
 
     if ip != '':
