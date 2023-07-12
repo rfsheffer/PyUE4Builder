@@ -191,31 +191,34 @@ def get_visual_studio_version(supported_versions=None):
     versions_found = set()
     highest_version = -1
     try:
-        # The most reliable way is to check this install key. The other keys have many variations.
-        hkey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\SxS\\VS7")
+        # First try for 2015 to 2017
         try:
-            # 2019 stopped with the SsS key thing... Yea the inconsistency of Visual Studio...
+            hkey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\SxS\\VS7")
+            try:
+                winreg.QueryValueEx(hkey, '15.0')
+                versions_found.add(2017)
+                if highest_version == -1:
+                    highest_version = 2017
+            except FileNotFoundError:
+                pass
+            try:
+                winreg.QueryValueEx(hkey, '14.0')
+                versions_found.add(2015)
+                if highest_version == -1:
+                    highest_version = 2015
+            except FileNotFoundError:
+                pass
+            hkey.Close()
+        except FileNotFoundError:
+            pass
+        # Now try for 2019+
+        try:
             hkey2019 = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\16.0")
             versions_found.add(2019)
             highest_version = 2019
             hkey2019.Close()
         except FileNotFoundError:
             pass
-        try:
-            winreg.QueryValueEx(hkey, '15.0')
-            versions_found.add(2017)
-            if highest_version == -1:
-                highest_version = 2017
-        except FileNotFoundError:
-            pass
-        try:
-            winreg.QueryValueEx(hkey, '14.0')
-            versions_found.add(2015)
-            if highest_version == -1:
-                highest_version = 2015
-        except FileNotFoundError:
-            pass
-        hkey.Close()
     except OSError:
         return -1
 
