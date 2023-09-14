@@ -253,9 +253,12 @@ class ProjectConfig(object):
         return result
 
     def get_suitable_vs_versions(self):
-        if self.engine_major_version >= 5:
-            return [2019, 2022]
-        else:
+        if self.engine_major_version == 5:
+            if self.engine_minor_version >= 3:
+                return [2022]
+            else:
+                return [2019, 2022]
+        elif self.engine_major_version == 4:
             if self.engine_minor_version >= 26:
                 return [2019]
             if self.engine_minor_version >= 25:

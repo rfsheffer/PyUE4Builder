@@ -211,12 +211,20 @@ def get_visual_studio_version(supported_versions=None):
             hkey.Close()
         except FileNotFoundError:
             pass
-        # Now try for 2019+
+        # Now try for 2019
         try:
             hkey2019 = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\16.0")
             versions_found.add(2019)
             highest_version = 2019
             hkey2019.Close()
+        except FileNotFoundError:
+            pass
+        # Now try for 2022
+        try:
+            hkey2022 = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\17.0")
+            versions_found.add(2022)
+            highest_version = 2022
+            hkey2022.Close()
         except FileNotFoundError:
             pass
     except OSError:
