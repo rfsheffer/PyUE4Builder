@@ -102,6 +102,10 @@ def genloc_func(config: ProjectConfig):
 
 
 @tools.command()
+@click.option('--res', '-r',
+              type=click.STRING,
+              default='1920x1080',
+              help='Resolution control of the window')
 @click.option('--umap', '-m',
               type=click.STRING,
               default='',
@@ -119,19 +123,19 @@ def genloc_func(config: ProjectConfig):
               default='',
               help='Extra parameters to pass to the game')
 @pass_config
-def standalone(config: ProjectConfig, extra, ip, waittime, umap):
+def standalone(config: ProjectConfig, extra, ip, waittime, umap, res):
     """ Run a standalone build of the game """
-    standalone_func(config, extra, ip, waittime, umap)
+    standalone_func(config, extra, ip, waittime, umap, res)
 
 
-def standalone_func(config: ProjectConfig, extra, ip, waittime, umap):
+def standalone_func(config: ProjectConfig, extra, ip, waittime, umap, res):
     """ Run a standalone build of the game """
     print_action('Running Standalone')
     cmd_args = [config.uproject_file_path,
                 '-game',
                 '-windowed',
-                '-ResX=1920',
-                '-ResY=1080']
+                '-ResX=%s' % res.split('x')[0],
+                '-ResY=%s' % res.split('x')[1]]
     cmd_args.extend(['-'+arg.strip() for arg in extra.split('-')[1:]])
 
     if ip != '':
