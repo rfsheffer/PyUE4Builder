@@ -127,7 +127,7 @@ def build_script(engine, script, configuration, buildtype, build, platform, clea
         click.secho('\nEngine Branch switched, will clean and rebuild...\n')
 
     # Ensure the unreal header tool exists. It is important for all Unreal projects
-    if not buildexplicit:
+    if not buildexplicit and (config.engine_major_version < 5 or (config.engine_major_version == 5 and config.engine_minor_version < 3)):
         if not os.path.isfile(os.path.join(config.UE4EnginePath, 'Engine\\Binaries\\Win64\\UnrealHeaderTool.exe')):
             b = Build(config, build_name='UnrealHeaderTool')
             if not b.run():
@@ -200,6 +200,7 @@ def ensure_engine(config, engine_override):
     """
     can_pull_engine = config.git_engine_repo != '' and config.git_engine_branch != ''
     engine_branch_switched = False
+    engine_path = ''
 
     if config.UE4EnginePath == '':
         if not can_pull_engine and engine_override == '':
@@ -207,6 +208,7 @@ def ensure_engine(config, engine_override):
                        'You can specify a path using the -e param, or specify git configuration.', not config.automated)
 
         if engine_override != '':
+            engine_path = engine_override
             config.setup_engine_paths(os.path.abspath(engine_override))
         elif not config.automated:
             result = click.confirm('Would you like to specify the location of the engine install?', default=False)
@@ -225,7 +227,8 @@ def ensure_engine(config, engine_override):
                         except Exception:
                             error_exit('Unable to create engine directory! Tried at {}'.format(result),
                                        not config.automated)
-                    config.setup_engine_paths(result)
+                    engine_path = result
+                    config.setup_engine_paths(engine_path)
                     break
             else:
                 # Find an ideal location to put the engine
@@ -249,9 +252,15 @@ def ensure_engine(config, engine_override):
         else:
             error_exit('No engine available for automated case! Either fill out git info or supply engine directory',
                        not config.automated)
-    elif config.UE4EnginePath != engine_override and engine_override != '':
-        error_exit('Specific engine path requested, but engine path for this project already exists?',
-                   not config.automated)
+    else:
+        if config.UE4EnginePath != engine_override and engine_override != '':
+            error_exit('Specific engine path requested, but engine path for this project already exists?',
+                       not config.automated)
+
+        if engine_override != '':
+            engine_path = engine_override
+        else:
+            engine_path = config.UE4EnginePath
 
     # Before doing anything, make sure we have all build dependencies ready
     if can_pull_engine:
@@ -259,14 +268,14 @@ def ensure_engine(config, engine_override):
         git_action.branch_name = config.git_engine_branch
         git_action.similar_branches = config.git_engine_similar_branches
         git_action.repo_name = config.git_engine_repo
-        git_action.output_folder = config.UE4EnginePath
+        git_action.output_folder = engine_path
         git_action.disable_strict_hostkey_check = True
         git_action.force_repull = False
         if not git_action.run():
             error_exit(git_action.error, not config.automated)
         engine_branch_switched = git_action.branch_switched
 
-    if not config.setup_engine_paths(engine_override):
+    if not config.setup_engine_paths(engine_path):
         error_exit('Could not setup valid engine paths!', not config.automated)
 
     # Make sure we have the build tools required for this engine version

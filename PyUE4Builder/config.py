@@ -201,11 +201,13 @@ class ProjectConfig(object):
                     self.UE4EnginePath = ''
                     result = False
             except Exception:
-                # No keys exist, fresh install!
+                # No keys exist do a fresh installation!
                 self.UE4EnginePath = ''
                 result = False
         else:
             result = check_engine_dir_valid(self.UE4EnginePath)
+            if not result:
+                self.UE4EnginePath = ''
 
         if result:
             self.editor_running = is_editor_running(self.UE4EnginePath)
